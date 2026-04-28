@@ -16,7 +16,7 @@ if (!databaseUrl) {
 export default defineConfig({
   out: "./.migrations",
   dialect: "postgresql",
-  schema: "scr/schema/index.ts",
+  schema: "src/schema/index.ts",
   migrations: {
     prefix: "unix",
     table: "__drizzle_migrations__",

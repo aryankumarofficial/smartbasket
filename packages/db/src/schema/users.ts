@@ -1,5 +1,9 @@
 import { relations } from "drizzle-orm"
 import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { userEvents } from "./user-events.js"
+import { carts } from "./carts.js"
+import { orders } from "./orders.js"
+import { preferences } from "./preferences.js"
 
 export const users = pgTable(
   "users",
@@ -24,7 +28,13 @@ export const users = pgTable(
 
 export const userRelations = relations(users, ({ many, one }) => ({
   events: many(userEvents),
-  cart: one(carts, cartsFields.userId),
+  cart: one(carts, {
+    fields: [users.id],
+    references: [carts.userId],
+  }),
   orders: many(orders),
-  preferences: one(preferences),
+  preferences: one(preferences, {
+    fields: [users.id],
+    references: [preferences.userId],
+  }),
 }))
