@@ -1,6 +1,7 @@
 import { db } from "../client.js"
 import { products } from "../schema/products.js"
 import { eq, and, gte, lte } from "drizzle-orm"
+import type { ProductTag } from "../schema/products.js"
 
 export const getProductById = async (id: string) => {
   return db.query.products.findFirst({
@@ -31,4 +32,51 @@ export const getProducts = async (filters: {
     .select()
     .from(products)
     .where(and(...conditions))
+}
+
+export const createProduct = async (data: {
+  title?: string
+  name: string
+  description?: string | null
+  price: string
+  category: string
+  categoryId?: string
+  images?: string[]
+  metadata?: Record<string, unknown>
+  manualTags?: ProductTag[]
+}) => {
+  const [created] = await db
+    .insert(products)
+    .values({
+      ...data,
+      manualTags: data.manualTags ?? [],
+      aiTags: [],
+      finalTags: data.manualTags ?? [],
+    })
+    .returning()
+  return created
+}
+
+export const updateProduct = async (
+  productId: string,
+  data: Partial<{
+    title: string
+    name: string
+    description: string | null
+    price: string
+    category: string
+    categoryId: string
+    images: string[]
+    metadata: Record<string, unknown>
+    manualTags: ProductTag[]
+    aiTags: ProductTag[]
+    finalTags: ProductTag[]
+  }>
+) => {
+  const [updated] = await db
+    .update(products)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(products.id, productId))
+    .returning()
+  return updated
 }

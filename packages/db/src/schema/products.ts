@@ -17,10 +17,24 @@ import { categories } from "./categories.js"
 import { productEmbeddings } from "./product-embeddings.js"
 import { productViews } from "./product-views.js"
 
+export type ProductTagCategory =
+  | "use_case"
+  | "audience"
+  | "price_segment"
+  | "type"
+
+export interface ProductTag {
+  tag: string
+  category: ProductTagCategory
+  weight: number
+  source: "manual" | "ai"
+}
+
 export const products = pgTable(
   "products",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    title: text("title"),
     name: text("name").notNull(),
     description: text("description"),
     price: decimal("price", { precision: 10, scale: 2 }).notNull(),
@@ -32,7 +46,11 @@ export const products = pgTable(
     subcategory: text("subcategory"),
     imageUrl: text("image_url"),
     images: jsonb("images").$type<string[]>(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     tags: jsonb("tags").$type<string[]>(),
+    manualTags: jsonb("manual_tags").$type<ProductTag[]>().default([]),
+    aiTags: jsonb("ai_tags").$type<ProductTag[]>().default([]),
+    finalTags: jsonb("final_tags").$type<ProductTag[]>().default([]),
     occasions: jsonb("occasions").$type<string[]>(),
     recipientTypes: jsonb("recipient_types").$type<string[]>(),
     ageGroups: jsonb("age_groups").$type<string[]>(),
@@ -50,6 +68,9 @@ export const products = pgTable(
     index("products_occasions_idx").on(table.occasions),
     index("products_recipeint_idx").on(table.recipientTypes),
     index("products_tags_idx").on(table.tags),
+    index("products_manual_tags_idx").on(table.manualTags),
+    index("products_ai_tags_idx").on(table.aiTags),
+    index("products_final_tags_idx").on(table.finalTags),
   ]
 )
 

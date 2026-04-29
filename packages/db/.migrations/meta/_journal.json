@@ -15,6 +15,13 @@
       "when": 1777490012542,
       "tag": "1777490012_salty_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777494290769,
+      "tag": "1777494290_handy_taskmaster",
+      "breakpoints": true
     }
   ]
 }
