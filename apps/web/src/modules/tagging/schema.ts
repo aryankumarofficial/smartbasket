@@ -1,4 +1,4 @@
-import type { StructuredTag } from "./types"
+import type { ProductTagSignal, StructuredTag } from "./types"
 
 const tagCategories = new Set([
   "use_case",
@@ -54,4 +54,40 @@ export function mergeTags(
   }
 
   return [...merged.values()].sort((a, b) => b.weight - a.weight)
+}
+
+function signalBoost(signal: ProductTagSignal): number {
+  const views = Math.max(0, Number(signal.viewCount || 0))
+  const clicks = Math.max(0, Number(signal.clickCount || 0))
+  const purchases = Math.max(0, Number(signal.purchaseCount || 0))
+
+  // Small, bounded boost — prevents runaway weight inflation.
+  const raw = 0.004 * views + 0.02 * clicks + 0.08 * purchases
+  return Math.max(0, Math.min(0.25, raw))
+}
+
+export function applySignalsToMergedTags(
+  tags: StructuredTag[],
+  signals: ProductTagSignal[]
+): StructuredTag[] {
+  if (!signals?.length) return tags
+
+  const signalMap = new Map<string, ProductTagSignal>()
+  for (const s of signals) {
+    if (!s?.tag || !s?.category) continue
+    signalMap.set(`${s.category}:${normalizeToken(s.tag)}`, {
+      ...s,
+      tag: normalizeToken(s.tag),
+    })
+  }
+
+  return tags
+    .map((t) => {
+      const key = `${t.category}:${t.tag}`
+      const s = signalMap.get(key)
+      if (!s) return t
+      const boosted = Math.max(0, Math.min(1, t.weight + signalBoost(s)))
+      return { ...t, weight: boosted }
+    })
+    .sort((a, b) => b.weight - a.weight)
 }

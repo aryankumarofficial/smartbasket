@@ -24,3 +24,11 @@ export interface TaggingPayload {
 export interface LlmTaggingResponse {
   tags: StructuredTag[]
 }
+
+export interface ProductTagSignal {
+  tag: string
+  category: TagCategory
+  viewCount: number
+  clickCount: number
+  purchaseCount: number
+}

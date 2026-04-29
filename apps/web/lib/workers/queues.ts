@@ -15,6 +15,8 @@ export const queueNames = {
   sessionCleanup: "session-cleanup",
   cacheCleanup: "cache-cleanup",
   taggingGeneration: "generate-product-tags",
+  tagSignalUpdate: "tag-signal-update",
+  tagInsightsRefresh: "tag-insights-refresh",
 } as const
 
 export const queues = {
@@ -34,6 +36,12 @@ export const queues = {
     connection: queueConnection,
   }),
   taggingGeneration: new Queue(queueNames.taggingGeneration, {
+    connection: queueConnection,
+  }),
+  tagSignalUpdate: new Queue(queueNames.tagSignalUpdate, {
+    connection: queueConnection,
+  }),
+  tagInsightsRefresh: new Queue(queueNames.tagInsightsRefresh, {
     connection: queueConnection,
   }),
 }
@@ -81,4 +89,22 @@ export async function enqueueTaggingGeneration(payload: { productId: string }) {
     payload,
     defaultJobOptions
   )
+}
+
+export async function enqueueTagSignalUpdate(payload: {
+  productId: string
+  eventType: "view" | "click" | "purchase"
+  delta?: number
+}) {
+  return queues.tagSignalUpdate.add("tag-signal-update", payload, {
+    ...defaultJobOptions,
+    attempts: 5,
+  })
+}
+
+export async function enqueueTagInsightsRefresh(payload: { reason?: string } = {}) {
+  return queues.tagInsightsRefresh.add("tag-insights-refresh", payload, {
+    ...defaultJobOptions,
+    attempts: 2,
+  })
 }

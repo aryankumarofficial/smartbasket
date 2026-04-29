@@ -6,6 +6,7 @@ import {
   enqueueProfileAggregation,
   enqueueRecommendationPrecompute,
   enqueueSessionCleanup,
+  enqueueTagInsightsRefresh,
 } from "./queues"
 import { aggregateAllProfiles } from "./profile-aggregator"
 import {
@@ -20,6 +21,8 @@ import { cleanupCache, cleanupSessions } from "./session-cleanup"
 import IORedis from "ioredis"
 import { aggregateUserProfile } from "./profile-aggregator"
 import { startTaggingWorker } from "@/src/workers/tagging.worker"
+import { applyEventSignalToProductTags } from "./tag-signal-updater"
+import { refreshProductDerivedInsights } from "./tag-insights-refresher"
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://127.0.0.1:6379"
 
@@ -64,6 +67,35 @@ export function startQueueWorkers() {
     connection,
   })
   startTaggingWorker()
+
+  new Worker(
+    queueNames.tagSignalUpdate,
+    async (job) => {
+      const productId = job.data?.productId as string | undefined
+      const eventType = job.data?.eventType as
+        | "view"
+        | "click"
+        | "purchase"
+        | undefined
+
+      if (!productId || !eventType) {
+        throw new Error("Invalid tag-signal-update payload")
+      }
+
+      return applyEventSignalToProductTags({
+        productId,
+        eventType,
+        delta: job.data?.delta as number | undefined,
+      })
+    },
+    { connection }
+  )
+
+  new Worker(
+    queueNames.tagInsightsRefresh,
+    async () => refreshProductDerivedInsights(),
+    { connection }
+  )
 }
 
 export async function enqueueRecurringJobs() {
@@ -73,5 +105,6 @@ export async function enqueueRecurringJobs() {
     enqueueRecommendationPrecompute(),
     enqueueSessionCleanup(),
     enqueueCacheCleanup(),
+    enqueueTagInsightsRefresh({ reason: "recurring" }),
   ])
 }

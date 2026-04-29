@@ -1,6 +1,6 @@
-import { mergeTags, normalizeTags } from "./schema"
+import { applySignalsToMergedTags, mergeTags, normalizeTags } from "./schema"
 import { taggingRepository } from "./repository"
-import type { StructuredTag } from "./types"
+import type { ProductTagSignal, StructuredTag } from "./types"
 import { llmService } from "@/src/services/llm.service"
 
 export const taggingService = {
@@ -9,6 +9,15 @@ export const taggingService = {
     if (!product) {
       throw new Error("Product not found")
     }
+
+    const signalRows = await taggingRepository.getProductTagSignals(productId)
+    const signals: ProductTagSignal[] = (signalRows ?? []).map((r) => ({
+      tag: String((r as any).tag ?? ""),
+      category: (r as any).category,
+      viewCount: Number((r as any).viewCount ?? 0),
+      clickCount: Number((r as any).clickCount ?? 0),
+      purchaseCount: Number((r as any).purchaseCount ?? 0),
+    }))
 
     const generated = await llmService.generateProductTags({
       productId: product.id,
@@ -20,7 +29,8 @@ export const taggingService = {
     })
     const aiTags = normalizeTags(generated.tags)
     const manualTags = (product.manualTags as StructuredTag[] | null) ?? []
-    const finalTags = mergeTags(manualTags, aiTags)
+    const merged = mergeTags(manualTags, aiTags)
+    const finalTags = applySignalsToMergedTags(merged, signals)
 
     return taggingRepository.updateAiAndFinalTags(productId, aiTags, finalTags)
   },
@@ -31,12 +41,22 @@ export const taggingService = {
       throw new Error("Product not found")
     }
 
+    const signalRows = await taggingRepository.getProductTagSignals(productId)
+    const signals: ProductTagSignal[] = (signalRows ?? []).map((r) => ({
+      tag: String((r as any).tag ?? ""),
+      category: (r as any).category,
+      viewCount: Number((r as any).viewCount ?? 0),
+      clickCount: Number((r as any).clickCount ?? 0),
+      purchaseCount: Number((r as any).purchaseCount ?? 0),
+    }))
+
     const normalizedManual = normalizeTags(manualTags).map((tag) => ({
       ...tag,
       source: "manual" as const,
     }))
     const existingAi = (product.aiTags as StructuredTag[] | null) ?? []
-    const finalTags = mergeTags(normalizedManual, existingAi)
+    const merged = mergeTags(normalizedManual, existingAi)
+    const finalTags = applySignalsToMergedTags(merged, signals)
 
     return taggingRepository.updateManualAndFinalTags(
       productId,
