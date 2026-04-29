@@ -4,13 +4,15 @@
   "private": true,
   "license": "PROPRIETARY",
   "type": "module",
+  "types": "./src/index.ts",
   "publishConfig": {
     "access": "public"
   },
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./queries/*": "./src/queries/*.ts"
   },
   "scripts": {
     "db:generate": "drizzle-kit generate",
