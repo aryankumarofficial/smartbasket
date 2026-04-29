@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.models.schemas import HealthResponse
-from app.routers import embeddings, recommendations, search, similar
+from app.routers import embeddings, recommendations, search, similar, tagging
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +30,7 @@ app.include_router(recommendations.router)
 app.include_router(similar.router)
 app.include_router(search.router)
 app.include_router(embeddings.router)
+app.include_router(tagging.router)
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -55,6 +56,7 @@ async def root():
             "/search-rerank",
             "/embeddings/product",
             "/embeddings/products/batch",
+            "/tagging/product",
             "/health",
         ],
     }

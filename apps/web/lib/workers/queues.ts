@@ -3,7 +3,7 @@ import { Queue, type JobsOptions } from "bullmq"
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://127.0.0.1:6379"
 
-const connection = new IORedis(REDIS_URL, {
+export const queueConnection = new IORedis(REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 })
@@ -14,20 +14,28 @@ export const queueNames = {
   recommendationPrecompute: "recommendation-precompute",
   sessionCleanup: "session-cleanup",
   cacheCleanup: "cache-cleanup",
+  taggingGeneration: "generate-product-tags",
 } as const
 
 export const queues = {
   profileAggregation: new Queue(queueNames.profileAggregation, {
-    connection,
+    connection: queueConnection,
   }),
   embeddingGeneration: new Queue(queueNames.embeddingGeneration, {
-    connection,
+    connection: queueConnection,
   }),
   recommendationPrecompute: new Queue(queueNames.recommendationPrecompute, {
-    connection,
+    connection: queueConnection,
   }),
-  sessionCleanup: new Queue(queueNames.sessionCleanup, { connection }),
-  cacheCleanup: new Queue(queueNames.cacheCleanup, { connection }),
+  sessionCleanup: new Queue(queueNames.sessionCleanup, {
+    connection: queueConnection,
+  }),
+  cacheCleanup: new Queue(queueNames.cacheCleanup, {
+    connection: queueConnection,
+  }),
+  taggingGeneration: new Queue(queueNames.taggingGeneration, {
+    connection: queueConnection,
+  }),
 }
 
 const defaultJobOptions: JobsOptions = {
@@ -65,4 +73,12 @@ export async function enqueueSessionCleanup() {
 
 export async function enqueueCacheCleanup() {
   return queues.cacheCleanup.add("cleanup", {}, defaultJobOptions)
+}
+
+export async function enqueueTaggingGeneration(payload: { productId: string }) {
+  return queues.taggingGeneration.add(
+    "generate-product-tags",
+    payload,
+    defaultJobOptions
+  )
 }

@@ -19,6 +19,7 @@ import {
 import { cleanupCache, cleanupSessions } from "./session-cleanup"
 import IORedis from "ioredis"
 import { aggregateUserProfile } from "./profile-aggregator"
+import { startTaggingWorker } from "@/src/workers/tagging.worker"
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://127.0.0.1:6379"
 
@@ -62,6 +63,7 @@ export function startQueueWorkers() {
   new Worker(queueNames.cacheCleanup, async () => cleanupCache(), {
     connection,
   })
+  startTaggingWorker()
 }
 
 export async function enqueueRecurringJobs() {

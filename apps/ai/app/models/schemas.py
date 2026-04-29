@@ -53,3 +53,22 @@ class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
     version: str
+
+
+class ProductTag(BaseModel):
+    tag: str
+    category: str
+    weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    source: str = "ai"
+
+
+class ProductTaggingRequest(BaseModel):
+    productId: str
+    title: str
+    description: str | None = None
+    category: str | None = None
+    metadata: dict | None = None
+
+
+class ProductTaggingResponse(BaseModel):
+    tags: list[ProductTag]
