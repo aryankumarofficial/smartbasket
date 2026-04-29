@@ -4,6 +4,14 @@ import { userEvents } from "./user-events.js"
 import { carts } from "./carts.js"
 import { orders } from "./orders.js"
 import { preferences } from "./preferences.js"
+import { productViews } from "./product-views.js"
+import { cartEvents } from "./cart-events.js"
+import { wishlistEvents } from "./wishlist-events.js"
+import { searchLogs } from "./search-logs.js"
+import { userSessions } from "./user-sessions.js"
+import { userProfiles } from "./user-profiles.js"
+import { userEmbeddings } from "./user-embeddings.js"
+import { recommendationCache } from "./recommendation-cache.js"
 
 export const users = pgTable(
   "users",
@@ -37,4 +45,18 @@ export const userRelations = relations(users, ({ many, one }) => ({
     fields: [users.id],
     references: [preferences.userId],
   }),
+  productViews: many(productViews),
+  cartEvents: many(cartEvents),
+  wishlistEvents: many(wishlistEvents),
+  searchLogs: many(searchLogs),
+  sessions: many(userSessions),
+  profile: one(userProfiles, {
+    fields: [users.id],
+    references: [userProfiles.userId],
+  }),
+  embeddings: one(userEmbeddings, {
+    fields: [users.id],
+    references: [userEmbeddings.userId],
+  }),
+  recommendationCache: many(recommendationCache),
 }))

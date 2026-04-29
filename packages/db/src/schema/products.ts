@@ -11,8 +11,11 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 import { userEvents } from "./user-events.js"
-import { orderItems, orders } from "./orders.js"
-import { cartItems, carts } from "./carts.js"
+import { orderItems } from "./orders.js"
+import { cartItems } from "./carts.js"
+import { categories } from "./categories.js"
+import { productEmbeddings } from "./product-embeddings.js"
+import { productViews } from "./product-views.js"
 
 export const products = pgTable(
   "products",
@@ -23,6 +26,9 @@ export const products = pgTable(
     price: decimal("price", { precision: 10, scale: 2 }).notNull(),
     originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
     category: text("category").notNull(),
+    categoryId: uuid("category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
     subcategory: text("subcategory"),
     imageUrl: text("image_url"),
     images: jsonb("images").$type<string[]>(),
@@ -47,10 +53,17 @@ export const products = pgTable(
   ]
 )
 
-export const productsRelations = relations(products, ({ many }) => ({
+export const productsRelations = relations(products, ({ one, many }) => ({
   events: many(userEvents),
-
   cartItems: many(cartItems),
-
   orderItems: many(orderItems),
+  categoryRef: one(categories, {
+    fields: [products.categoryId],
+    references: [categories.id],
+  }),
+  embeddings: one(productEmbeddings, {
+    fields: [products.id],
+    references: [productEmbeddings.productId],
+  }),
+  views: many(productViews),
 }))
