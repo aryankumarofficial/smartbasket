@@ -35,10 +35,15 @@ export async function refreshProductDerivedInsights() {
     GROUP BY ${products.category}
   `)
 
+  const tagRows = Array.from(tagCounts as unknown as Iterable<TagCountRow>)
+  const categoryRows = Array.from(
+    categoryCounts as unknown as Iterable<CategoryCountRow>
+  )
+
   await Promise.all([
-    ...tagCounts.rows
-      .filter((r) => !!r.tag && !!r.category)
-      .map((row) =>
+    ...tagRows
+      .filter((r: TagCountRow) => !!r.tag && !!r.category)
+      .map((row: TagCountRow) =>
         upsertTagInsight({
           tag: row.tag,
           category: row.category,
@@ -46,9 +51,9 @@ export async function refreshProductDerivedInsights() {
           computedAt,
         })
       ),
-    ...categoryCounts.rows
-      .filter((r) => !!r.category)
-      .map((row) =>
+    ...categoryRows
+      .filter((r: CategoryCountRow) => !!r.category)
+      .map((row: CategoryCountRow) =>
         upsertCategoryInsight({
           category: row.category,
           productCount: row.product_count,
@@ -59,8 +64,8 @@ export async function refreshProductDerivedInsights() {
 
   return {
     computedAt: computedAt.toISOString(),
-    tags: tagCounts.rows.length,
-    categories: categoryCounts.rows.length,
+    tags: tagRows.length,
+    categories: categoryRows.length,
   }
 }
 

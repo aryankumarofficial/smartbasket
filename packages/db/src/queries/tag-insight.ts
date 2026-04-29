@@ -1,6 +1,6 @@
 import { db } from "../client.js"
 import { tagInsights } from "../schema/tag-insights.js"
-import { desc, eq } from "drizzle-orm"
+import { desc, eq, sql } from "drizzle-orm"
 
 export async function listTopTags(params: {
   limit?: number
@@ -83,15 +83,15 @@ export async function incrementTagInsightCounters(params: {
       set: {
         viewCount:
           params.eventType === "view"
-            ? tagInsights.viewCount + delta
+            ? sql<number>`${tagInsights.viewCount} + ${delta}`
             : tagInsights.viewCount,
         clickCount:
           params.eventType === "click"
-            ? tagInsights.clickCount + delta
+            ? sql<number>`${tagInsights.clickCount} + ${delta}`
             : tagInsights.clickCount,
         purchaseCount:
           params.eventType === "purchase"
-            ? tagInsights.purchaseCount + delta
+            ? sql<number>`${tagInsights.purchaseCount} + ${delta}`
             : tagInsights.purchaseCount,
         updatedAt: new Date(),
       },

@@ -1,7 +1,7 @@
 import { getProductById } from "@workspace/db/queries/product"
 import { incrementTagInsightCounters } from "@workspace/db/queries/tag-insight"
 import { upsertProductTagSignal } from "@workspace/db/queries/product-tag-signal"
-import type { ProductTag } from "@workspace/db/schema/products"
+import type { ProductTag } from "@workspace/db"
 
 const allowedCategories = new Set([
   "use_case",

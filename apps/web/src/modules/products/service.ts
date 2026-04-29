@@ -19,6 +19,9 @@ export const productsService = {
   async create(input: ProductUpsertInput) {
     validateProductInput(input)
     const created = await productsRepository.create(input)
+    if (!created) {
+      throw new Error("Failed to create product")
+    }
     await enqueueTagGeneration(created.id)
     return created
   },

@@ -1,6 +1,6 @@
 import { db } from "../client.js"
 import { productTagSignals } from "../schema/product-tag-signals.js"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 
 export type TagSignalEventType = "view" | "click" | "purchase"
 
@@ -41,15 +41,15 @@ export async function upsertProductTagSignal(params: {
       set: {
         viewCount:
           params.eventType === "view"
-            ? productTagSignals.viewCount + delta
+            ? sql<number>`${productTagSignals.viewCount} + ${delta}`
             : productTagSignals.viewCount,
         clickCount:
           params.eventType === "click"
-            ? productTagSignals.clickCount + delta
+            ? sql<number>`${productTagSignals.clickCount} + ${delta}`
             : productTagSignals.clickCount,
         purchaseCount:
           params.eventType === "purchase"
-            ? productTagSignals.purchaseCount + delta
+            ? sql<number>`${productTagSignals.purchaseCount} + ${delta}`
             : productTagSignals.purchaseCount,
         updatedAt: new Date(),
       },
