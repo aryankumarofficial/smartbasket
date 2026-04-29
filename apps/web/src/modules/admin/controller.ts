@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { adminService } from "./service"
-import { validateTagUpdateInput } from "./schema"
-import type { AdminTagUpdateInput } from "./types"
+import { validateProductImagesPatchInput, validateTagUpdateInput } from "./schema"
+import type { AdminProductImagesPatchInput, AdminTagUpdateInput } from "./types"
 
 export const adminController = {
   async updateProductTags(request: NextRequest, productId: string) {
@@ -17,6 +17,17 @@ export const adminController = {
       manualTags: product?.manualTags ?? [],
       aiTags: product?.aiTags ?? [],
       finalTags: product?.finalTags ?? [],
+    })
+  },
+
+  async patchProductImages(request: NextRequest, productId: string) {
+    const input = (await request.json()) as AdminProductImagesPatchInput
+    validateProductImagesPatchInput(input)
+    const product = await adminService.patchProductImages(productId, input)
+    return NextResponse.json({
+      success: true,
+      productId,
+      images: product?.images ?? [],
     })
   },
 }

@@ -1,5 +1,6 @@
-import { getProductById } from "@workspace/db/queries/product"
+import { getProductById, updateProduct } from "@workspace/db/queries/product"
 
 export const adminRepository = {
   getProductById,
+  updateProduct,
 }
