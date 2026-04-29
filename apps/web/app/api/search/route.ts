@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { searchService } from "@/lib/services/search.service"
 import { eventTrackingService } from "@/lib/services/event-tracking.service"
+import { normalizeEventBatch } from "@/lib/tracking/event-normalizer"
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,17 +52,19 @@ export async function GET(request: NextRequest) {
     if (query) {
       const userId = searchParams.get("userId") ?? undefined
       const sessionId = searchParams.get("sessionId") ?? undefined
+      const normalizedSearchEvent = normalizeEventBatch({
+        eventType: "search",
+        userId,
+        sessionId,
+        source: "search_api",
+        metadata: {
+          query,
+          filters: { category, minPrice, maxPrice, occasion },
+          resultCount: result.total,
+        },
+      })
       eventTrackingService
-        .ingestEvent({
-          eventType: "search",
-          userId,
-          sessionId,
-          metadata: {
-            query,
-            filters: { category, minPrice, maxPrice, occasion },
-            resultCount: result.total,
-          },
-        })
+        .ingestAndDispatch(normalizedSearchEvent)
         .catch(() => {
           // Non-critical
         })

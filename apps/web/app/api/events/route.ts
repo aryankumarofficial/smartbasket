@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { eventTrackingService } from "@/lib/services/event-tracking.service"
-import type { TrackingEvent, EventBatch } from "@/lib/types/events"
+import { normalizeEventBatch } from "@/lib/tracking/event-normalizer"
+import type { EventBatch, TrackingEvent } from "@/lib/types/events"
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,32 +9,23 @@ export async function POST(request: NextRequest) {
       | TrackingEvent
       | EventBatch
 
-    // Support both single event and batch
-    if ("events" in body && Array.isArray(body.events)) {
-      await eventTrackingService.ingestBatch(body.events)
-      return NextResponse.json({
-        success: true,
-        processed: body.events.length,
-      })
-    }
+    const normalized = normalizeEventBatch(body)
+    const dispatch = await eventTrackingService.ingestAndDispatch(
+      normalized
+    )
 
-    // Single event
-    const event = body as TrackingEvent
-    if (!event.eventType) {
-      return NextResponse.json(
-        { error: "eventType is required" },
-        { status: 400 }
-      )
-    }
-
-    await eventTrackingService.ingestEvent(event)
-
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      processed: normalized.length,
+      dispatch,
+    })
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to process event"
     console.error("POST /api/events error:", error)
     return NextResponse.json(
-      { error: "Failed to process event" },
-      { status: 500 }
+      { error: message },
+      { status: 400 }
     )
   }
 }

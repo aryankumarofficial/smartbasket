@@ -9,10 +9,14 @@ import {
   endSession,
   linkSessionToUser,
 } from "@workspace/db/queries/index"
-import type { TrackingEvent } from "../types/events"
+import { dispatchDerivedJobs, type EventDispatchSummary } from "../workers/event-dispatcher"
+import type {
+  NormalizedTrackingEvent,
+  TrackingEvent,
+} from "../types/events"
 
 export class EventTrackingService {
-  async ingestEvent(event: TrackingEvent): Promise<void> {
+  async ingestEvent(event: NormalizedTrackingEvent): Promise<void> {
     const { eventType, userId, sessionId, productId, metadata } = event
 
     // Update session activity
@@ -129,14 +133,26 @@ export class EventTrackingService {
       await createEvent({
         userId,
         productId,
+        sessionId,
+        anonymousId: event.anonymousId,
+        eventId: event.eventId,
         eventType,
+        source: event.source,
+        occurredAt: new Date(event.occurredAt),
         metadata: { ...metadata, sessionId },
       })
     }
   }
 
-  async ingestBatch(events: TrackingEvent[]): Promise<void> {
-    await Promise.allSettled(events.map((e) => this.ingestEvent(e)))
+  async ingestBatch(events: NormalizedTrackingEvent[]): Promise<void> {
+    await Promise.allSettled(events.map((event) => this.ingestEvent(event)))
+  }
+
+  async ingestAndDispatch(
+    events: NormalizedTrackingEvent[]
+  ): Promise<EventDispatchSummary> {
+    await this.ingestBatch(events)
+    return dispatchDerivedJobs(events)
   }
 
   async linkSession(sessionId: string, userId: string): Promise<void> {

@@ -15,9 +15,12 @@ export type EventType =
 
 export interface TrackingEvent {
   eventType: EventType
+  eventId?: string
   userId?: string
+  anonymousId?: string
   sessionId?: string
   productId?: string
+  source?: string
   metadata?: Record<string, unknown>
   timestamp?: string
 }
@@ -59,4 +62,16 @@ export interface SearchEvent extends TrackingEvent {
 
 export interface EventBatch {
   events: TrackingEvent[]
+}
+
+export interface NormalizedTrackingEvent {
+  eventType: EventType
+  eventId: string
+  userId?: string
+  anonymousId?: string
+  sessionId?: string
+  productId?: string
+  source?: string
+  metadata?: Record<string, unknown>
+  occurredAt: string
 }
