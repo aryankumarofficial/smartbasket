@@ -41,3 +41,22 @@ export async function precomputeRecommendations(): Promise<{
 
   return { processed, errors }
 }
+
+export async function precomputeForUser(
+  userId: string
+): Promise<{ processed: number; errors: number }> {
+  try {
+    const profile = await getUserProfile(userId)
+    if (profile && (profile.totalViews ?? 0) >= 5) {
+      await recommendationService.getRecommendations(userId, 20)
+      return { processed: 1, errors: 0 }
+    }
+    return { processed: 0, errors: 0 }
+  } catch (error) {
+    console.error(
+      `[Worker] Failed to precompute recommendations for user ${userId}:`,
+      error
+    )
+    return { processed: 0, errors: 1 }
+  }
+}

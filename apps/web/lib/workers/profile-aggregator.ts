@@ -35,3 +35,18 @@ export async function aggregateAllProfiles(): Promise<{
 
   return { processed, errors }
 }
+
+export async function aggregateUserProfile(
+  userId: string
+): Promise<{ processed: number; errors: number }> {
+  try {
+    await userProfileService.rebuildProfile(userId)
+    return { processed: 1, errors: 0 }
+  } catch (error) {
+    console.error(
+      `[Worker] Failed to aggregate profile for user ${userId}:`,
+      error
+    )
+    return { processed: 0, errors: 1 }
+  }
+}
