@@ -26,7 +26,7 @@ SmartBasket is an **AI-powered gifting platform that functions as a decision eng
 
 - PostgreSQL (Neon / Supabase)
 - Drizzle ORM
-- pgvector (optional, for embeddings)
+- pgvector (required for vector similarity retrieval)
 
 ### AI / ML Layer
 
@@ -40,7 +40,7 @@ SmartBasket is an **AI-powered gifting platform that functions as a decision eng
 - Claude API (LLM reasoning + ranking)
 - Razorpay (payments)
 - Cloudinary (media storage)
-- Redis (optional caching)
+- Redis (BullMQ queues + async worker orchestration)
 
 ### Infrastructure
 
@@ -128,6 +128,12 @@ bun run dev
 cd apps/ai
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
+```
+
+### Run Workers
+
+```bash
+bun --cwd apps/web run workers
 ```
 
 ### Run DB Migrations
@@ -252,11 +258,11 @@ function ProductPage({ product }) {
 
 | Job | Interval | Purpose |
 |-----|----------|---------|
-| Profile Aggregation | 1 hour | Rebuild user profiles from behavioral data |
-| Embedding Generation | 6 hours | Generate product embeddings via ML service |
-| Recommendation Precompute | 30 min | Pre-cache recommendations for active users |
-| Session Cleanup | Daily | Remove old sessions (> 30 days) |
-| Cache Cleanup | 15 min | Remove expired recommendation cache entries |
+| Profile Aggregation | queue-driven | Rebuild user profiles (targeted or batch) |
+| Embedding Generation | queue-driven | Generate single-product or batch embeddings |
+| Recommendation Precompute | queue-driven | Pre-cache recommendations per user or batch |
+| Session Cleanup | queue-driven | Remove old sessions (> 30 days) |
+| Cache Cleanup | queue-driven | Remove expired recommendation cache entries |
 
 ---
 

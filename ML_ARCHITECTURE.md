@@ -21,7 +21,7 @@ Provide **accurate, fast, and explainable gift recommendations** using a hybrid 
 Hybrid system:
 
 - Rule-based filtering & scoring (fast, reliable)
-- Embedding similarity (optional refinement)
+- Embedding similarity (pgvector-backed retrieval)
 - LLM-based reasoning (top results only)
 
 ---
@@ -38,7 +38,7 @@ Candidate Filtering (SQL)
 ↓
 Rule-Based Scoring
 ↓
-Embedding Similarity (optional)
+Embedding Similarity (pgvector cosine distance)
 ↓
 LLM Re-ranking
 ↓
@@ -71,7 +71,7 @@ score =
 ### 3. Semantic Search
 
 - embedding generation
-- cosine similarity
+- cosine similarity with pgvector nearest-neighbor queries
 
 ```
 similarity = (A · B) / (||A|| ||B||)

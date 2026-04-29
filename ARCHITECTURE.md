@@ -36,7 +36,7 @@
 │  SERVICE     │ │ WORKERS   │ │  AI SERVICE      │
 │  LAYER       │ │           │ │  (FastAPI)        │
 │              │ │ Profile   │ │                   │
-│ EventTracker │ │ Aggregate │ │ /recommend/:id    │
+│ EventTracker │ │ BullMQ    │ │ /recommend/:id    │
 │ UserProfile  │ │ Embeddings│ │ /similar/:id      │
 │ Search       │ │ Rec Cache │ │ /search-rerank    │
 │ Recommender  │ │ Cleanup   │ │ /embeddings       │
@@ -127,8 +127,9 @@ Located in `@workspace/db`
 
 #### Design Principles
 
-- Proper indexing on user_id, product_id, timestamp
+- Proper indexing on user_id, product_id, session_id, timestamp
 - JSONB for flexible attributes (tags, occasions, affinities)
+- pgvector for product/user embedding similarity
 - Event-driven design (append-only behavioral logs)
 - Foreign key relationships with cascading deletes
 
@@ -190,10 +191,10 @@ EventTrackingService (route to correct table)
     └──→ user_events (audit trail)
     │
     ▼
-Background Workers (scheduled)
+Background Workers (Redis + BullMQ queues)
     │
     ├──→ Profile Aggregator → user_profiles
-    ├──→ Embedding Generator → product_embeddings
+    ├──→ Embedding Generator → product_embeddings (pgvector)
     └──→ Recommendation Precomputer → recommendation_cache
     │
     ▼
@@ -277,6 +278,7 @@ Return to UI
 - Python ecosystem access
 - sentence-transformers, scikit-learn, numpy
 - Independent scaling from web app
+- Native pgvector similarity queries for low-latency retrieval
 
 ### Drizzle ORM
 - SQL-first, type-safe
@@ -297,7 +299,7 @@ Return to UI
 ## Scalability Considerations
 
 - **Database**: Proper indexing, JSONB for flexibility, append-only logs
-- **Workers**: Configurable intervals, independent job execution
+- **Workers**: Durable Redis queues with retries/backoff and isolated processors
 - **ML Service**: Stateless, horizontally scalable, Docker-ready
 - **Caching**: Multi-level (client, DB-backed, precomputed)
 - **Event Pipeline**: Batched ingestion, async processing
