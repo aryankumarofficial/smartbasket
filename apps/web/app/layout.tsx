@@ -2,7 +2,9 @@ import { Geist, Geist_Mono, Inter, Space_Grotesk } from "next/font/google"
 
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@workspace/ui/lib/utils";
+import { cn } from "@workspace/ui/lib/utils"
+import { AppProviders } from "@/src/providers/AppProviders"
+import { UiThemeBridge } from "@/src/providers/UiThemeBridge"
 
 const spaceGroteskHeading = Space_Grotesk({subsets:['latin'],variable:'--font-heading'});
 
@@ -25,7 +27,10 @@ export default function RootLayout({
       className={cn("antialiased", fontMono.variable, "font-sans", inter.variable, spaceGroteskHeading.variable)}
     >
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <UiThemeBridge />
+          <AppProviders>{children}</AppProviders>
+        </ThemeProvider>
       </body>
     </html>
   )
