@@ -32,13 +32,15 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!accessToken) {
-      setSocket((prev) => {
-        if (prev) {
-          teardownSocket(prev)
-        }
-        return null
+      queueMicrotask(() => {
+        setSocket((prev) => {
+          if (prev) {
+            teardownSocket(prev)
+          }
+          return null
+        })
+        setConnected(false)
       })
-      setConnected(false)
       return
     }
 
@@ -61,17 +63,27 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     next.on(SOCKET_EVENTS.ORDER_UPDATE, onOrderUpdate)
     next.on(SOCKET_EVENTS.NOTIFICATION_NEW, onNotification)
 
-    setSocket(next)
-    next.connect()
+    let cancelled = false
+    queueMicrotask(() => {
+      if (cancelled) {
+        teardownSocket(next)
+        return
+      }
+      setSocket(next)
+      next.connect()
+    })
 
     return () => {
+      cancelled = true
       next.off("connect", onConnect)
       next.off("disconnect", onDisconnect)
       next.off(SOCKET_EVENTS.ORDER_UPDATE, onOrderUpdate)
       next.off(SOCKET_EVENTS.NOTIFICATION_NEW, onNotification)
       teardownSocket(next)
-      setConnected(false)
-      setSocket(null)
+      queueMicrotask(() => {
+        setConnected(false)
+        setSocket(null)
+      })
     }
   }, [accessToken, queryClient])
 
