@@ -12,9 +12,10 @@ import type {
   RecommendedProduct,
   RecommendationStrategy,
 } from "../types/recommendations"
-
-const AI_SERVICE_URL =
-  process.env.AI_SERVICE_URL ?? "http://localhost:8000"
+import {
+  fetchAiRecommendations,
+  fetchAiSimilarProducts,
+} from "./ai-client"
 
 export class RecommendationService {
   async getRecommendations(
@@ -22,23 +23,26 @@ export class RecommendationService {
     limit = 20,
     context?: Record<string, unknown>
   ): Promise<RecommendedProduct[]> {
-    // 1. Check cache first
-    const cached = await getCachedRecommendations(userId, "hybrid")
-    if (cached) {
-      return cached.recommendations
-        .slice(0, limit)
-        .map((r) => ({
-          ...r,
-          strategy: "hybrid" as RecommendationStrategy,
-        }))
-    }
-
-    // 2. Get user profile to determine strategy
+    const shouldBypassCache = context?.realTime === true
     const profile = await getUserProfile(userId)
+    const strategy =
+      !profile || (profile.totalViews ?? 0) < 5 ? "popular" : "hybrid"
+
+    if (!shouldBypassCache) {
+      const cached = await getCachedRecommendations(userId, strategy)
+      if (cached) {
+        return cached.recommendations
+          .slice(0, limit)
+          .map((r) => ({
+            ...r,
+            strategy: strategy as RecommendationStrategy,
+          }))
+      }
+    }
 
     let recommendations: RecommendedProduct[]
 
-    if (!profile || (profile.totalViews ?? 0) < 5) {
+    if (strategy === "popular") {
       // Cold start: use popular + rule-based
       recommendations = await this.getColdStartRecommendations(
         limit,
@@ -57,7 +61,7 @@ export class RecommendationService {
     if (recommendations.length > 0) {
       await setCachedRecommendations({
         userId,
-        strategy: "hybrid",
+        strategy,
         recommendations: recommendations.map((r) => ({
           productId: r.productId,
           score: r.score,
@@ -79,16 +83,8 @@ export class RecommendationService {
   ): Promise<RecommendedProduct[]> {
     // Try ML service first
     try {
-      const response = await fetch(
-        `${AI_SERVICE_URL}/similar-products/${productId}?limit=${limit}`,
-        { signal: AbortSignal.timeout(5000) }
-      )
-      if (response.ok) {
-        const data = (await response.json()) as {
-          recommendations: RecommendedProduct[]
-        }
-        return data.recommendations
-      }
+      const data = await fetchAiSimilarProducts(productId, limit)
+      return data.recommendations
     } catch {
       // ML service unavailable, fallback to category-based
     }
@@ -134,21 +130,8 @@ export class RecommendationService {
   ): Promise<RecommendedProduct[]> {
     // Try ML service
     try {
-      const response = await fetch(
-        `${AI_SERVICE_URL}/recommend/${userId}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ limit, context }),
-          signal: AbortSignal.timeout(5000),
-        }
-      )
-      if (response.ok) {
-        const data = (await response.json()) as {
-          recommendations: RecommendedProduct[]
-        }
-        return data.recommendations
-      }
+      const data = await fetchAiRecommendations(userId, limit, context)
+      return data.recommendations
     } catch {
       // ML service unavailable
     }

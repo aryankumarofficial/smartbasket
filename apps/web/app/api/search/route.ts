@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       | "newest"
       | "relevance"
       | undefined
+    const userId = searchParams.get("userId") ?? undefined
 
     const result = await searchService.search({
       query,
@@ -46,11 +47,11 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
       sortBy,
+      userId,
     })
 
     // Log search event asynchronously
     if (query) {
-      const userId = searchParams.get("userId") ?? undefined
       const sessionId = searchParams.get("sessionId") ?? undefined
       const normalizedSearchEvent = normalizeEventBatch({
         eventType: "search",

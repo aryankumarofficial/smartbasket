@@ -20,10 +20,12 @@ export async function GET(request: NextRequest) {
     const occasion = searchParams.get("occasion")
     const recipientType = searchParams.get("recipientType")
     const category = searchParams.get("category")
+    const realTime = searchParams.get("realTime") === "true"
 
     if (occasion) context.occasion = occasion
     if (recipientType) context.recipientType = recipientType
     if (category) context.category = category
+    if (realTime) context.realTime = true
 
     const recommendations =
       await recommendationService.getRecommendations(

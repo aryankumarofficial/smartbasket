@@ -1,5 +1,6 @@
 import { and, eq, gte, lte, ilike, sql, or } from "drizzle-orm"
 import { db, products } from "@workspace/db"
+import { fetchAiSearchRerank } from "./ai-client"
 
 export interface SearchFilters {
   query?: string
@@ -13,6 +14,7 @@ export interface SearchFilters {
   limit?: number
   offset?: number
   sortBy?: "price_asc" | "price_desc" | "rating" | "newest" | "relevance"
+  userId?: string
 }
 
 export interface SearchResult {
@@ -95,8 +97,14 @@ export class SearchService {
         .where(whereClause),
     ])
 
+    const reranked = await this.rerankIfNeeded(
+      filters.query,
+      results,
+      filters.userId
+    )
+
     return {
-      products: results,
+      products: reranked,
       total: countResult[0]?.count ?? 0,
       filters,
     }
@@ -125,6 +133,31 @@ export class SearchService {
         return sql`${products.createdAt} DESC`
       default:
         return sql`${products.createdAt} DESC`
+    }
+  }
+
+  private async rerankIfNeeded(
+    query: string | undefined,
+    results: typeof products.$inferSelect[],
+    userId?: string
+  ) {
+    if (!query || results.length <= 1) {
+      return results
+    }
+
+    try {
+      const data = await fetchAiSearchRerank(
+        query,
+        results.map((item) => item.id),
+        userId,
+        results.length
+      )
+      const productMap = new Map(results.map((item) => [item.id, item]))
+      return data.reranked_ids
+        .map((id) => productMap.get(id))
+        .filter((item): item is typeof products.$inferSelect => Boolean(item))
+    } catch {
+      return results
     }
   }
 }
