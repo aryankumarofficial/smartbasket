@@ -1,4 +1,9 @@
 import type { NormalizedTrackingEvent } from "../types/events"
+import {
+  enqueueEmbeddingGeneration,
+  enqueueProfileAggregation,
+  enqueueRecommendationPrecompute,
+} from "./queues"
 
 export interface EventDispatchSummary {
   profileRefreshUserIds: string[]
@@ -32,11 +37,25 @@ export async function dispatchDerivedJobs(
     }
   }
 
+  const profileIds = [...profileRefreshUserIds]
+  const embeddingIds = [...embeddingRefreshProductIds]
+  const invalidationIds = [...recommendationInvalidationUserIds]
+
+  await Promise.all([
+    ...profileIds.map((userId) =>
+      enqueueProfileAggregation({ userId })
+    ),
+    ...embeddingIds.map((productId) =>
+      enqueueEmbeddingGeneration({ productId })
+    ),
+    ...invalidationIds.map((userId) =>
+      enqueueRecommendationPrecompute({ userId })
+    ),
+  ])
+
   return {
-    profileRefreshUserIds: [...profileRefreshUserIds],
-    embeddingRefreshProductIds: [...embeddingRefreshProductIds],
-    recommendationInvalidationUserIds: [
-      ...recommendationInvalidationUserIds,
-    ],
+    profileRefreshUserIds: profileIds,
+    embeddingRefreshProductIds: embeddingIds,
+    recommendationInvalidationUserIds: invalidationIds,
   }
 }

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getJobStatus, runJob } from "@/lib/workers/scheduler"
+import {
+  getJobStatus,
+  runJob,
+  startScheduler,
+} from "@/lib/workers/scheduler"
 
 export async function GET() {
   try {
-    const jobs = getJobStatus()
+    startScheduler()
+    const jobs = await getJobStatus()
     return NextResponse.json({ jobs })
   } catch (error) {
     console.error("GET /api/workers error:", error)
@@ -16,6 +21,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    startScheduler()
     const { jobName } = (await request.json()) as {
       jobName: string
     }
