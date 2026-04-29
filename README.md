@@ -1,21 +1,123 @@
-# shadcn/ui monorepo template
+# SmartBasket – AI Gifting Platform
 
-This is a Next.js monorepo template with shadcn/ui.
+## Overview
 
-## Adding components
+SmartBasket is an AI-powered gifting platform that provides personalized product recommendations using hybrid ML techniques (rules + embeddings + LLM).
 
-To add components to your app, run the following command at the root of your `web` app:
+---
+
+## Tech Stack
+
+### Frontend
+
+- Next.js (App Router)
+- Tailwind CSS
+- shadcn/ui
+
+### Backend
+
+- Next.js API Routes (primary backend)
+- FastAPI (ML inference layer)
+
+### Database
+
+- PostgreSQL (Neon)
+- Drizzle ORM
+
+### ML Layer
+
+- Recommendation engine (rules + LLM)
+- Semantic search (planned pgvector)
+- Gift finder + chatbot
+
+### Infra
+
+- Turborepo
+- Bun (package manager)
+- Inngest (background jobs)
+- Redis (caching – planned)
+
+---
+
+## Monorepo Structure
+
+```
+apps/
+  web/            # Next.js app (frontend + API routes)
+  api/            # FastAPI (ML layer)
+
+packages/
+  db/             # Drizzle ORM (schema + queries)
+  ui/             # shared UI components
+  types/          # shared schemas
+```
+
+---
+
+## Getting Started
+
+### Install
 
 ```bash
-pnpm dlx shadcn@latest add button -c apps/web
+bun install
 ```
 
-This will place the ui components in the `packages/ui/src/components` directory.
+### Run Web
 
-## Using components
-
-To use the components in your app, import them from the `ui` package.
-
-```tsx
-import { Button } from "@workspace/ui/components/button";
+```bash
+bun run dev
 ```
+
+### Run DB Migrations
+
+```bash
+bun --cwd packages/db db:generate
+bun --cwd packages/db db:migrate
+```
+
+---
+
+## Environment Variables
+
+Create `.env` at root:
+
+```
+DATABASE_URL=your_postgres_url
+```
+
+---
+
+## Key Concepts
+
+- DB schema is centralized in `@workspace/db`
+- Queries are abstracted in `/queries`
+- ML is a separate service (FastAPI)
+- Events power personalization
+
+---
+
+## Development Workflow
+
+1. Update schema → generate migration
+2. Add query in `/queries`
+3. Use in API route
+4. Connect to frontend
+
+---
+
+## Status
+
+- ✅ Schema + relations
+- ✅ Migrations
+- ✅ Query layer
+- 🔄 API routes
+- 🔄 ML integration
+
+---
+
+## Next Steps
+
+- API routes (`/api/products`, `/api/events`)
+- Recommendation engine
+- Redis caching
+- FastAPI ML endpoints
