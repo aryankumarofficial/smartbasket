@@ -1,5 +1,6 @@
 import json
 import logging
+import hashlib
 
 import numpy as np
 
@@ -68,8 +69,9 @@ class EmbeddingService:
 
     def _fallback_encode(self, text: str) -> list[float]:
         """Deterministic fallback when model unavailable."""
-        np.random.seed(hash(text) % (2**32))
-        return np.random.randn(self._dimensions).tolist()
+        seed = int(hashlib.sha256(text.encode("utf-8")).hexdigest()[:8], 16)
+        rng = np.random.default_rng(seed)
+        return rng.standard_normal(self._dimensions).tolist()
 
     def cosine_similarity(
         self, a: list[float], b: list[float]

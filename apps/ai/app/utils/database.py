@@ -90,6 +90,57 @@ def fetch_product_embeddings() -> list[dict]:
         return cur.fetchall()
 
 
+def fetch_similar_products_by_vector(
+    embedding: list[float], limit: int = 10
+) -> list[dict]:
+    """Fetch similar products using pgvector cosine distance."""
+    vector_literal = "[" + ",".join(str(v) for v in embedding) + "]"
+    with get_cursor() as cur:
+        cur.execute(
+            """
+            SELECT product_id, 1 - (embedding <=> %s::vector) AS score
+            FROM product_embeddings
+            ORDER BY embedding <=> %s::vector
+            LIMIT %s
+            """,
+            (vector_literal, vector_literal, limit),
+        )
+        return cur.fetchall()
+
+
+def fetch_top_cooccurrence_products(
+    user_id: str, limit: int = 20
+) -> list[dict]:
+    """Find collaborative candidates from co-view and co-purchase behavior."""
+    with get_cursor() as cur:
+        cur.execute(
+            """
+            WITH user_products AS (
+              SELECT DISTINCT product_id
+              FROM user_events
+              WHERE user_id = %s AND product_id IS NOT NULL
+            ),
+            similar_users AS (
+              SELECT DISTINCT ue.user_id
+              FROM user_events ue
+              JOIN user_products up ON up.product_id = ue.product_id
+              WHERE ue.user_id <> %s
+              LIMIT 500
+            )
+            SELECT ue.product_id, COUNT(*) AS score
+            FROM user_events ue
+            JOIN similar_users su ON su.user_id = ue.user_id
+            LEFT JOIN user_products up ON up.product_id = ue.product_id
+            WHERE ue.product_id IS NOT NULL AND up.product_id IS NULL
+            GROUP BY ue.product_id
+            ORDER BY score DESC
+            LIMIT %s
+            """,
+            (user_id, user_id, limit),
+        )
+        return cur.fetchall()
+
+
 def save_product_embedding(
     product_id: str,
     embedding: list[float],
@@ -103,7 +154,7 @@ def save_product_embedding(
             """
             INSERT INTO product_embeddings
                 (product_id, embedding, model, dimensions, input_text)
-            VALUES (%s, %s::jsonb, %s, %s, %s)
+            VALUES (%s, %s::vector, %s, %s, %s)
             ON CONFLICT (product_id) DO UPDATE SET
                 embedding = EXCLUDED.embedding,
                 model = EXCLUDED.model,
@@ -112,5 +163,11 @@ def save_product_embedding(
                 version = product_embeddings.version + 1,
                 updated_at = NOW()
             """,
-            (product_id, str(embedding), model, dimensions, input_text),
+            (
+                product_id,
+                "[" + ",".join(str(v) for v in embedding) + "]",
+                model,
+                dimensions,
+                input_text,
+            ),
         )

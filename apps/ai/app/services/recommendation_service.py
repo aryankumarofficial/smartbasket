@@ -8,7 +8,8 @@ from app.models.schemas import RecommendedProduct
 from app.services.embedding_service import embedding_service
 from app.utils.database import (
     fetch_product_by_id,
-    fetch_product_embeddings,
+    fetch_similar_products_by_vector,
+    fetch_top_cooccurrence_products,
     fetch_products,
     fetch_user_events,
     fetch_user_profile,
@@ -55,11 +56,16 @@ class RecommendationService:
             return []
 
         # Try embedding-based similarity
-        embeddings = fetch_product_embeddings()
-        if embeddings:
-            return self._embedding_similarity(
-                product_id, embeddings, limit
-            )
+        product_text = embedding_service.build_product_text(product)
+        query_embedding = embedding_service.encode(product_text)
+        vector_matches = fetch_similar_products_by_vector(
+            query_embedding, limit=limit + 1
+        )
+        vector_recs = self._vector_matches_to_recommendations(
+            product_id, vector_matches, limit
+        )
+        if vector_recs:
+            return vector_recs
 
         # Fallback: category-based
         return self._category_similarity(product, limit)
@@ -146,6 +152,14 @@ class RecommendationService:
     ) -> list[RecommendedProduct]:
         """Combine content-based, collaborative, and rule-based signals."""
         products = fetch_products(limit=500)
+        collaborative_candidates = fetch_top_cooccurrence_products(
+            user_id, limit=200
+        )
+        collaborative_map = {
+            str(item["product_id"]): float(item["score"])
+            for item in collaborative_candidates
+            if item.get("product_id")
+        }
 
         # Products user has already interacted with
         interacted_ids = set()
@@ -206,7 +220,13 @@ class RecommendationService:
             # 5. Recency boost
             score += 1  # base score for availability
 
-            # 6. Context matching
+            # 6. Collaborative boost
+            cooccurrence = collaborative_map.get(str(p["id"]), 0.0)
+            if cooccurrence > 0:
+                score += min(cooccurrence, 5.0)
+                reasons.append("Users with similar behavior liked this")
+
+            # 7. Context matching
             if context:
                 ctx_score = self._context_score(p, context)
                 score += ctx_score
@@ -259,44 +279,22 @@ class RecommendationService:
 
         return score
 
-    def _embedding_similarity(
-        self,
-        product_id: str,
-        embeddings: list[dict],
-        limit: int,
+    def _vector_matches_to_recommendations(
+        self, product_id: str, vector_matches: list[dict], limit: int
     ) -> list[RecommendedProduct]:
-        """Find similar products via cosine similarity on embeddings."""
-        target_emb = None
-        others: list[tuple[str, list[float]]] = []
-
-        for e in embeddings:
-            pid = str(e["product_id"])
-            emb = e["embedding"]
-            if isinstance(emb, str):
-                emb = json.loads(emb)
-            if pid == product_id:
-                target_emb = emb
-            else:
-                others.append((pid, emb))
-
-        if target_emb is None or not others:
-            return []
-
-        scored: list[tuple[str, float]] = []
-        for pid, emb in others:
-            sim = embedding_service.cosine_similarity(target_emb, emb)
-            scored.append((pid, sim))
-
-        scored.sort(key=lambda x: x[1], reverse=True)
-
+        filtered = [
+            row
+            for row in vector_matches
+            if str(row["product_id"]) != str(product_id)
+        ][:limit]
         return [
             RecommendedProduct(
-                product_id=pid,
-                score=round(sim, 3),
+                product_id=str(row["product_id"]),
+                score=round(float(row["score"]), 3),
                 reason="Similar product",
                 strategy="content_based",
             )
-            for pid, sim in scored[:limit]
+            for row in filtered
         ]
 
     def _category_similarity(
