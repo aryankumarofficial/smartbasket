@@ -1,71 +1,144 @@
-# ML Architecture
+# 🤖 ML Architecture
 
 ## Goal
 
-Provide personalized gifting recommendations using hybrid logic.
+Provide **accurate, fast, and explainable gift recommendations** using a hybrid approach.
 
 ---
 
-## Components
+## Core Components
 
 1. Recommendation Engine
 2. Personalization Engine
 3. Semantic Search
-4. Gift Finder
-5. Chat Assistant
+4. Gift Finder (Intent Engine)
+5. Conversational Assistant
 
 ---
 
-## Strategy
+## Core Strategy
 
 Hybrid system:
 
-- rules (fast)
-- embeddings (optional)
-- LLM (top results only)
+- Rule-based filtering & scoring (fast, reliable)
+- Embedding similarity (optional refinement)
+- LLM-based reasoning (top results only)
 
 ---
 
-## Pipeline
+## Recommendation Pipeline
 
 ```
-Events → Profile → Filter → Rank → Cache
+
+User Input / Events
+↓
+Intent Extraction (LLM)
+↓
+Candidate Filtering (SQL)
+↓
+Rule-Based Scoring
+↓
+Embedding Similarity (optional)
+↓
+LLM Re-ranking
+↓
+Cache Results
+↓
+Return to UI
+
 ```
+
+---
+
+## Algorithms Used
+
+### 1. SQL Filtering
+
+- reduces dataset early
+- improves efficiency
+
+---
+
+### 2. Rule-Based Scoring
+
+```ts
+score =
+  interest_match * 3 + occasion_match * 4 + price_fit * 2 + recency_boost * 3
+```
+
+---
+
+### 3. Semantic Search
+
+- embedding generation
+- cosine similarity
+
+```
+similarity = (A · B) / (||A|| ||B||)
+```
+
+---
+
+### 4. Intent Extraction
+
+- LLM converts text → structured data
+
+---
+
+### 5. LLM Re-ranking
+
+- improves ordering
+- adds reasoning
+
+---
+
+## Personalization Engine
+
+### Input:
+
+- product views
+- searches
+- purchases
+
+### Output:
+
+- dynamic user preferences
 
 ---
 
 ## Modes
 
-| Mode      | Use         |
-| --------- | ----------- |
-| cached    | homepage    |
-| real-time | search/chat |
+| Mode      | Use Case                  |
+| --------- | ------------------------- |
+| Cached    | homepage feed             |
+| Real-time | search, chat, gift finder |
 
 ---
 
 ## Data Source
 
-`user_events` table
+`user_events` table (event-driven system)
 
 ---
 
 ## Key Insight
 
-> Good filtering > fancy ML
+> Good filtering + scoring beats complex ML
 
 ---
 
 ## Failure Handling
 
-Fallback:
+Fallback strategies:
 
 - popular products
-- category-based
+- category-based recommendations
 
 ---
 
-## Future
+## Future Enhancements
 
-- embeddings (pgvector)
-- better ranking models
+- pgvector embeddings
+- advanced ranking models
 - A/B testing
+- feedback loops

@@ -1,48 +1,60 @@
-# Architecture Overview
-
-## System Design
-
-```
-Frontend (Next.js UI)
-        ↓
-Next.js API Routes (Backend)
-        ↓
----------------------------------
-| PostgreSQL (Drizzle ORM)     |
-| Redis (Cache - planned)      |
-| FastAPI (ML Layer)           |
----------------------------------
-```
-
----
+# 🏗️ System Architecture
 
 ## Core Principle
 
-> ML is a ranking layer, not the system.
-
-System = data + filtering + caching
-ML = improves ranking
+> This system is a **decision engine with commerce attached**  
+> ML improves ranking — it is not the system itself.
 
 ---
 
-## Layers
+## High-Level Architecture
 
-### 1. Frontend
+````
 
+Frontend (Next.js UI)
+↓
+Next.js API Layer
+↓
+-
+
+| PostgreSQL (Drizzle ORM)     |
+| FastAPI (AI Layer)           |
+| Redis (Cache - optional)     |
+--------------------------------
+
+```
+
+---
+
+## Layer Breakdown
+
+### 1. Frontend Layer
+
+Responsibilities:
 - UI rendering
-- triggers API calls
-- collects events
+- User interaction
+- Event tracking
+
+---
+
+### State Management Architecture
+
+| Type | Tool | Responsibility |
+|------|------|---------------|
+| UI State | Zustand | modals, cart UI, chat UI |
+| Server State | TanStack Query | API data, caching |
+| Real-time | WebSockets (optional) | order tracking |
 
 ---
 
 ### 2. API Layer (Next.js)
 
 Handles:
-
-- users
+- authentication
 - products
-- events
-- ML proxy
+- cart & orders
+- event logging
+- communication with AI service
 
 ---
 
@@ -51,116 +63,94 @@ Handles:
 Located in `@workspace/db`
 
 Contains:
-
 - schema
 - relations
-- queries
+- query logic
 
 ---
 
-### 4. ML Layer (FastAPI)
+### 4. AI Layer (FastAPI)
 
 Responsibilities:
-
 - recommendation ranking
+- intent parsing (gift finder)
 - semantic search
-- gift parsing
-- chatbot
+- chatbot responses
 
 ---
 
 ## Data Flow
 
 ```
-User → Events → DB
-            ↓
-     Build Preferences
-            ↓
-   Filter Products (SQL)
-            ↓
-   Rank (Rules / ML / LLM)
-            ↓
-        Cache
-            ↓
-         UI
+
+User → Events → Database
+↓
+Build User Profile
+↓
+Filter Products (SQL)
+↓
+Rank (Rules → Embeddings → LLM)
+↓
+Cache
+↓
+UI
+
 ```
 
 ---
 
 ## Key Tables
 
-| Table       | Purpose           |
-| ----------- | ----------------- |
-| users       | accounts + auth   |
-| products    | catalog           |
-| user_events | behavior tracking |
-| carts       | shopping cart     |
-| orders      | purchase records  |
-| preferences | derived ML state  |
-
----
-
-## Recommendation Pipeline
-
-1. Fetch recent events
-2. Build user profile
-3. Filter products (SQL)
-4. Rank (rules → ML → LLM)
-5. Cache result
-
----
-
-## Event System
-
-Events tracked:
-
-- product_view
-- search
-- add_to_cart
-- wishlist
-- purchase
+| Table            | Purpose                  |
+|------------------|--------------------------|
+| users            | authentication + profile |
+| products         | catalog                  |
+| user_events      | behavior tracking        |
+| carts            | cart state               |
+| orders           | purchases                |
+| user_preferences | derived ML profile       |
 
 ---
 
 ## Caching Strategy
 
 | Data           | TTL      |
-| -------------- | -------- |
+|----------------|----------|
 | homepage feed  | 30 min   |
-| search results | 5-10 min |
-| user profile   | 1 hour   |
+| search results | 5–10 min |
+| recommendations| 30 min   |
 
 ---
 
 ## Design Decisions
 
-### Why Drizzle
+### Zustand + TanStack Query
+- separates UI vs server state
+- reduces complexity
 
+### FastAPI for ML
+- Python ecosystem
+- easier ML integration
+
+### Drizzle ORM
+- SQL-first
 - type-safe
-- SQL-like
-- lightweight
-
-### Why Next.js API
-
-- simple backend
-- fast iteration
-
-### Why FastAPI
-
-- ML-friendly ecosystem
 
 ---
 
 ## What We Avoid
 
 - ❌ heavy ML pipelines
-- ❌ microservices early
-- ❌ over-engineering
+- ❌ unnecessary microservices
+- ❌ storing server state in client state
 
 ---
 
 ## Future Enhancements
 
-- pgvector for embeddings
-- real-time recommendations
+- pgvector integration
+- streaming AI responses
 - advanced ranking models
+```
+
+---
