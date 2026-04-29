@@ -1,7 +1,14 @@
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
+import { config as loadEnv } from "dotenv"
+import path from "path"
 
 import * as schema from "./schema/index.js"
+
+// Ensure DATABASE_URL is available in Next.js runtime as well as drizzle-kit.
+// We try a small set of common monorepo locations.
+loadEnv({ path: path.resolve(process.cwd(), ".env"), override: false })
+loadEnv({ path: path.resolve(process.cwd(), "..", "..", ".env"), override: false })
 
 const connectionString = process.env.DATABASE_URL
 
