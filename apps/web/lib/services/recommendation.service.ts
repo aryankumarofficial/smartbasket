@@ -259,7 +259,7 @@ export class RecommendationService {
     const affinities = profile?.categoryAffinities as
       | Record<string, number>
       | undefined
-    if (affinities && affinities[product.category] > 0.5) {
+    if (affinities && (affinities[product.category] ?? 0) > 0.5) {
       return `Based on your interest in ${product.category}`
     }
     if (product.rating && Number(product.rating) >= 4) {
