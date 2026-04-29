@@ -4,6 +4,8 @@ import {
   enqueueProfileAggregation,
   enqueueRecommendationPrecompute,
   enqueueSessionCleanup,
+  enqueueTaggingGeneration,
+  enqueueTagInsightsRefresh,
   queues,
 } from "./queues"
 import { startQueueWorkers } from "./worker-processors"
@@ -14,6 +16,8 @@ const jobs = [
   "recommendation-precompute",
   "session-cleanup",
   "cache-cleanup",
+  "generate-product-tags",
+  "tag-insights-refresh",
 ] as const
 
 export function startScheduler(): void {
@@ -36,7 +40,11 @@ export async function getJobStatus() {
               ? queues.recommendationPrecompute
               : jobName === "session-cleanup"
                 ? queues.sessionCleanup
-                : queues.cacheCleanup
+                : jobName === "cache-cleanup"
+                  ? queues.cacheCleanup
+                  : jobName === "generate-product-tags"
+                    ? queues.taggingGeneration
+                    : queues.tagInsightsRefresh
       const counts = await queue.getJobCounts()
       return { name: jobName, counts }
     })
@@ -58,6 +66,12 @@ export async function runJob(
       return enqueueSessionCleanup()
     case "cache-cleanup":
       return enqueueCacheCleanup()
+    case "generate-product-tags":
+      throw new Error(
+        "generate-product-tags requires a productId and is triggered on product create/update"
+      )
+    case "tag-insights-refresh":
+      return enqueueTagInsightsRefresh({ reason: "manual" })
     default:
       throw new Error(`Job not found: ${jobName}`)
   }
