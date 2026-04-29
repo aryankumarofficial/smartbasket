@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getProductById } from "@workspace/db/queries/product"
+import { productsController } from "@/src/modules/products/controller"
 
 export async function GET(
   _request: NextRequest,
@@ -7,21 +7,26 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const product = await getProductById(id)
-
-    if (!product) {
-      return NextResponse.json(
-        { error: "Product not found" },
-        { status: 404 }
-      )
-    }
-
-    return NextResponse.json({ product })
+    return productsController.getById(id)
   } catch (error) {
     console.error("GET /api/products/[id] error:", error)
     return NextResponse.json(
       { error: "Failed to fetch product" },
       { status: 500 }
     )
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    return productsController.update(request, id)
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to update product"
+    return NextResponse.json({ error: message }, { status: 400 })
   }
 }

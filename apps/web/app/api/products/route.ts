@@ -1,25 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getProducts } from "@workspace/db/queries/product"
+import { productsController } from "@/src/modules/products/controller"
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const category = searchParams.get("category") ?? undefined
-    const minPrice = searchParams.get("minPrice")
-      ? Number(searchParams.get("minPrice"))
-      : undefined
-    const maxPrice = searchParams.get("maxPrice")
-      ? Number(searchParams.get("maxPrice"))
-      : undefined
-
-    const products = await getProducts({ category, minPrice, maxPrice })
-
-    return NextResponse.json({ products, total: products.length })
+    return productsController.list(request)
   } catch (error) {
     console.error("GET /api/products error:", error)
     return NextResponse.json(
       { error: "Failed to fetch products" },
       { status: 500 }
     )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    return productsController.create(request)
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to create product"
+    return NextResponse.json({ error: message }, { status: 400 })
   }
 }
