@@ -9,6 +9,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 import { users } from "./users.js"
+import { vector } from "./vector.js"
 
 export const userEmbeddings = pgTable(
   "user_embeddings",
@@ -18,7 +19,7 @@ export const userEmbeddings = pgTable(
       .notNull()
       .unique()
       .references(() => users.id, { onDelete: "cascade" }),
-    embedding: jsonb("embedding").$type<number[]>().notNull(),
+    embedding: vector("embedding", 384).notNull(),
     model: text("model").notNull(),
     dimensions: integer("dimensions").notNull(),
     inputSummary: text("input_summary"), // summary of user behavior used

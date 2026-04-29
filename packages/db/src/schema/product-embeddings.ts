@@ -9,6 +9,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 import { products } from "./products.js"
+import { vector } from "./vector.js"
 
 export const productEmbeddings = pgTable(
   "product_embeddings",
@@ -18,7 +19,7 @@ export const productEmbeddings = pgTable(
       .notNull()
       .unique()
       .references(() => products.id, { onDelete: "cascade" }),
-    embedding: jsonb("embedding").$type<number[]>().notNull(),
+    embedding: vector("embedding", 384).notNull(),
     model: text("model").notNull(), // e.g. "sentence-transformers/all-MiniLM-L6-v2"
     dimensions: integer("dimensions").notNull(),
     inputText: text("input_text"), // the text used to generate the embedding

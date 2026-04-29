@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { db } from "../client.js"
 import { productEmbeddings } from "../schema/product-embeddings.js"
 import { userEmbeddings } from "../schema/user-embeddings.js"
@@ -43,6 +43,19 @@ export const getAllProductEmbeddings = async () => {
   return db.query.productEmbeddings.findMany()
 }
 
+export const getSimilarProductEmbeddings = async (
+  embedding: number[],
+  limit = 10
+) => {
+  const vectorLiteral = `[${embedding.join(",")}]`
+  return db.execute(sql`
+    SELECT product_id, 1 - (embedding <=> ${vectorLiteral}::vector) AS score
+    FROM product_embeddings
+    ORDER BY embedding <=> ${vectorLiteral}::vector
+    LIMIT ${limit}
+  `)
+}
+
 export const upsertUserEmbedding = async (data: {
   userId: string
   embedding: number[]
@@ -77,4 +90,17 @@ export const getUserEmbedding = async (userId: string) => {
   return db.query.userEmbeddings.findFirst({
     where: eq(userEmbeddings.userId, userId),
   })
+}
+
+export const getSimilarUsersByEmbedding = async (
+  embedding: number[],
+  limit = 10
+) => {
+  const vectorLiteral = `[${embedding.join(",")}]`
+  return db.execute(sql`
+    SELECT user_id, 1 - (embedding <=> ${vectorLiteral}::vector) AS score
+    FROM user_embeddings
+    ORDER BY embedding <=> ${vectorLiteral}::vector
+    LIMIT ${limit}
+  `)
 }

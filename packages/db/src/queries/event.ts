@@ -5,8 +5,13 @@ import { desc, eq } from "drizzle-orm"
 export const createEvent = async (data: {
   userId: string
   productId?: string
+  sessionId?: string
+  anonymousId?: string
+  eventId?: string
   eventType: string
-  metadata?: Record<string, any>
+  source?: string
+  occurredAt?: Date
+  metadata?: Record<string, unknown>
 }) => {
   await db.insert(userEvents).values(data)
 }
