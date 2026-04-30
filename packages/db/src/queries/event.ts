@@ -1,5 +1,5 @@
-import { db } from "../client.js"
-import { userEvents } from "../schema/user-events.js"
+import { db } from "../client"
+import { userEvents } from "../schema/user-events"
 import { desc, eq } from "drizzle-orm"
 
 export const createEvent = async (data: {

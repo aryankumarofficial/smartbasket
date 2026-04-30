@@ -1,10 +1,10 @@
 import { desc, eq } from "drizzle-orm"
 
-import { db } from "../client.js"
-import { cartItems, carts } from "../schema/carts.js"
-import { orderItems, orders } from "../schema/orders.js"
-import { products } from "../schema/products.js"
-import { users } from "../schema/users.js"
+import { db } from "../client"
+import { cartItems, carts } from "../schema/carts"
+import { orderItems, orders } from "../schema/orders"
+import { products } from "../schema/products"
+import { users } from "../schema/users"
 
 export async function getOrderById(orderId: string) {
   const [row] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1)

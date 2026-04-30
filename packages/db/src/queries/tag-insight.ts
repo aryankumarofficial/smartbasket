@@ -1,5 +1,5 @@
-import { db } from "../client.js"
-import { tagInsights } from "../schema/tag-insights.js"
+import { db } from "../client"
+import { tagInsights } from "../schema/tag-insights"
 import { desc, eq, sql } from "drizzle-orm"
 
 export async function listTopTags(params: {

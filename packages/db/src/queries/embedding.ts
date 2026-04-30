@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm"
-import { db } from "../client.js"
-import { productEmbeddings } from "../schema/product-embeddings.js"
-import { userEmbeddings } from "../schema/user-embeddings.js"
+import { db } from "../client"
+import { productEmbeddings } from "../schema/product-embeddings"
+import { userEmbeddings } from "../schema/user-embeddings"
 
 export const upsertProductEmbedding = async (data: {
   productId: string

@@ -1,6 +1,6 @@
 import { eq, lt } from "drizzle-orm"
-import { db } from "../client.js"
-import { userSessions } from "../schema/user-sessions.js"
+import { db } from "../client"
+import { userSessions } from "../schema/user-sessions"
 
 export const createSession = async (data: {
   sessionId: string

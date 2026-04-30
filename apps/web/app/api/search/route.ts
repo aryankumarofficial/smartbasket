@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
       | "relevance"
       | undefined
     const userId = searchParams.get("userId") ?? undefined
+    const sessionId = searchParams.get("sessionId") ?? undefined
+    const anonymousId = searchParams.get("anonymousId") ?? undefined
 
     const result = await searchService.search({
       query,
@@ -51,24 +53,28 @@ export async function GET(request: NextRequest) {
     })
 
     // Log search event asynchronously
-    if (query) {
-      const sessionId = searchParams.get("sessionId") ?? undefined
-      const normalizedSearchEvent = normalizeEventBatch({
-        eventType: "search",
-        userId,
-        sessionId,
-        source: "search_api",
-        metadata: {
-          query,
-          filters: { category, minPrice, maxPrice, occasion },
-          resultCount: result.total,
-        },
-      })
-      eventTrackingService
-        .ingestAndDispatch(normalizedSearchEvent)
-        .catch(() => {
-          // Non-critical
+    if (query && (userId || sessionId || anonymousId)) {
+      try {
+        const normalizedSearchEvent = normalizeEventBatch({
+          eventType: "search",
+          userId,
+          sessionId,
+          anonymousId,
+          source: "search_api",
+          metadata: {
+            query,
+            filters: { category, minPrice, maxPrice, occasion },
+            resultCount: result.total,
+          },
         })
+        eventTrackingService
+          .ingestAndDispatch(normalizedSearchEvent)
+          .catch(() => {
+            // Non-critical
+          })
+      } catch {
+        // Tracking should never fail search API responses.
+      }
     }
 
     return NextResponse.json(result)

@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm"
 
-import { db } from "../client.js"
-import { emailLogs } from "../schema/email-logs.js"
+import { db } from "../client"
+import { emailLogs } from "../schema/email-logs"
 
 export type EmailLogStatus = "pending" | "sent" | "failed"
 

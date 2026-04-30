@@ -7,7 +7,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core"
-import { users } from "./users.js"
+import { users } from "./users"
 import { relations } from "drizzle-orm"
 
 export const orders = pgTable(

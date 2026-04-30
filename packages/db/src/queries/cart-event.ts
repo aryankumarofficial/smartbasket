@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm"
-import { db } from "../client.js"
-import { cartEvents } from "../schema/cart-events.js"
+import { db } from "../client"
+import { cartEvents } from "../schema/cart-events"
 
 export const createCartEvent = async (data: {
   userId: string

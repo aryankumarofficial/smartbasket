@@ -10,10 +10,7 @@ import {
   linkSessionToUser,
 } from "@workspace/db/queries/index"
 import { dispatchDerivedJobs, type EventDispatchSummary } from "../workers/event-dispatcher"
-import type {
-  NormalizedTrackingEvent,
-  TrackingEvent,
-} from "../types/events"
+import type { NormalizedTrackingEvent } from "../types/events"
 
 export class EventTrackingService {
   async ingestEvent(event: NormalizedTrackingEvent): Promise<void> {
@@ -50,6 +47,9 @@ export class EventTrackingService {
             metadata,
           })
         }
+        break
+
+      case "product_click":
         break
 
       case "cart_add":

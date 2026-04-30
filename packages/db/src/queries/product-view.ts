@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm"
-import { db } from "../client.js"
-import { productViews } from "../schema/product-views.js"
+import { db } from "../client"
+import { productViews } from "../schema/product-views"
 
 export const createProductView = async (data: {
   userId?: string

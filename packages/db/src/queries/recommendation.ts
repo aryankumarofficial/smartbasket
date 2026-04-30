@@ -1,9 +1,9 @@
 import { and, eq, gte, lte, desc } from "drizzle-orm"
-import { db } from "../client.js"
+import { db } from "../client"
 import {
   recommendationCache,
   type CachedRecommendation,
-} from "../schema/recommendation-cache.js"
+} from "../schema/recommendation-cache"
 
 export const getCachedRecommendations = async (
   userId: string,

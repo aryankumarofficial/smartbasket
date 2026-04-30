@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, sql } from "drizzle-orm"
-import { db } from "../client.js"
-import { wishlistEvents } from "../schema/wishlist-events.js"
+import { db } from "../client"
+import { wishlistEvents } from "../schema/wishlist-events"
 
 export const createWishlistEvent = async (data: {
   userId: string

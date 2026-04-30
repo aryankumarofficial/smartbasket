@@ -1,6 +1,6 @@
 import { eq, isNull } from "drizzle-orm"
-import { db } from "../client.js"
-import { categories } from "../schema/categories.js"
+import { db } from "../client"
+import { categories } from "../schema/categories"
 
 export const getCategoryById = async (id: string) => {
   return db.query.categories.findFirst({

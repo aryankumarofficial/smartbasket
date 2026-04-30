@@ -1,6 +1,6 @@
 import { jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
-import { users } from "./users.js"
-import { products } from "./products.js"
+import { users } from "./users"
+import { products } from "./products"
 import { index } from "drizzle-orm/pg-core"
 import { relations } from "drizzle-orm"
 

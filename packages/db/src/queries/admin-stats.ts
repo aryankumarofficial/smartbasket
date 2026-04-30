@@ -1,15 +1,15 @@
 import { and, count, countDistinct, eq, gte, isNotNull, lte, ne, sql } from "drizzle-orm"
 
-import { db } from "../client.js"
-import { orders } from "../schema/orders.js"
-import { userSessions } from "../schema/user-sessions.js"
-import { users } from "../schema/users.js"
+import { db } from "../client"
+import { orders } from "../schema/orders"
+import { userSessions } from "../schema/user-sessions"
+import { users } from "../schema/users"
 
 import {
   countOrders,
   sumOrderRevenueExcludingCancelled,
   topProductsByUnits,
-} from "./order-admin.js"
+} from "./order-admin"
 
 export async function countUsers() {
   const [row] = await db.select({ c: count() }).from(users)

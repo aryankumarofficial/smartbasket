@@ -1,7 +1,7 @@
-import { db } from "../client.js"
-import { products } from "../schema/products.js"
+import { db } from "../client"
+import { products } from "../schema/products"
 import { and, asc, count, desc, eq, gte, ilike, lte, or } from "drizzle-orm"
-import type { ProductTag } from "../schema/products.js"
+import type { ProductTag } from "../schema/products"
 
 export const getProductById = async (id: string) => {
   return db.query.products.findFirst({

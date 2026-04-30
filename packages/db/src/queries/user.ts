@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm"
-import { db } from "../client.js"
-import { users } from "../schema/users.js"
+import { db } from "../client"
+import { users } from "../schema/users"
 
 export const getUserByEmail = async (email: string) => {
   return db.query.users.findFirst({

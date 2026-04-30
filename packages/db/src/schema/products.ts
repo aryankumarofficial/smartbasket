@@ -10,12 +10,12 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core"
-import { userEvents } from "./user-events.js"
-import { orderItems } from "./orders.js"
-import { cartItems } from "./carts.js"
-import { categories } from "./categories.js"
-import { productEmbeddings } from "./product-embeddings.js"
-import { productViews } from "./product-views.js"
+import { userEvents } from "./user-events"
+import { orderItems } from "./orders"
+import { cartItems } from "./carts"
+import { categories } from "./categories"
+import { productEmbeddings } from "./product-embeddings"
+import { productViews } from "./product-views"
 
 export type ProductTagCategory =
   | "use_case"

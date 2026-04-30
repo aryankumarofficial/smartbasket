@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm"
-import { db } from "../client.js"
-import { userProfiles } from "../schema/user-profiles.js"
+import { db } from "../client"
+import { userProfiles } from "../schema/user-profiles"
 
 export const getUserProfile = async (userId: string) => {
   return db.query.userProfiles.findFirst({

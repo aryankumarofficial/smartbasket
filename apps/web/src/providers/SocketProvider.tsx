@@ -59,6 +59,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] })
       void queryClient.invalidateQueries({ queryKey: ["orders"] })
       void queryClient.invalidateQueries({ queryKey: ["admin", "orders"] })
+      void queryClient.invalidateQueries({ queryKey: ["storefront"] })
     }
 
     next.on("connect", onConnect)

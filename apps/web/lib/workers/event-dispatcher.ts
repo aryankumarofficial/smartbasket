@@ -46,7 +46,9 @@ export async function dispatchDerivedJobs(
       const signal =
         event.eventType === "purchase"
           ? ({ eventType: "purchase" as const, delta: 5 } as const)
-          : ["cart_add", "wishlist_add", "search_click"].includes(event.eventType)
+          : ["cart_add", "wishlist_add", "search_click", "product_click"].includes(
+                event.eventType
+              )
             ? ({ eventType: "click" as const, delta: 2 } as const)
             : ["product_view", "product_view_end"].includes(event.eventType)
               ? ({ eventType: "view" as const, delta: 1 } as const)

@@ -8,8 +8,8 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core"
-import { products } from "./products.js"
-import { vector } from "./vector.js"
+import { products } from "./products"
+import { vector } from "./vector"
 
 export const productEmbeddings = pgTable(
   "product_embeddings",

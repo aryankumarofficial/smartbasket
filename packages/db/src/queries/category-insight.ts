@@ -1,5 +1,5 @@
-import { db } from "../client.js"
-import { categoryInsights } from "../schema/category-insights.js"
+import { db } from "../client"
+import { categoryInsights } from "../schema/category-insights"
 import { desc } from "drizzle-orm"
 
 export async function listTrendingCategories(limit = 10) {

@@ -1,5 +1,5 @@
-import { db } from "./client.js"
-import { users } from "./schema/users.js"
+import { db } from "./client"
+import { users } from "./schema/users"
 
 async function test() {
   const allUsers = await db.select().from(users)

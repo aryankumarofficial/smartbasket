@@ -1,6 +1,7 @@
 export type EventType =
   | "product_view"
   | "product_view_end"
+  | "product_click"
   | "cart_add"
   | "cart_remove"
   | "cart_update_quantity"

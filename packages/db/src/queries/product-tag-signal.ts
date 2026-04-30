@@ -1,5 +1,5 @@
-import { db } from "../client.js"
-import { productTagSignals } from "../schema/product-tag-signals.js"
+import { db } from "../client"
+import { productTagSignals } from "../schema/product-tag-signals"
 import { eq, sql } from "drizzle-orm"
 
 export type TagSignalEventType = "view" | "click" | "purchase"

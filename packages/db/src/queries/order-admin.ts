@@ -1,8 +1,8 @@
 import { and, count, desc, eq, gte, ilike, lte, ne, or, sql, sum } from "drizzle-orm"
 
-import { db } from "../client.js"
-import { orderItems, orders } from "../schema/orders.js"
-import { users } from "../schema/users.js"
+import { db } from "../client"
+import { orderItems, orders } from "../schema/orders"
+import { users } from "../schema/users"
 
 export async function countOrders() {
   const [row] = await db.select({ c: count() }).from(orders)

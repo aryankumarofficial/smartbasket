@@ -1,6 +1,6 @@
 import { desc, eq, sql } from "drizzle-orm"
-import { db } from "../client.js"
-import { searchLogs } from "../schema/search-logs.js"
+import { db } from "../client"
+import { searchLogs } from "../schema/search-logs"
 
 export const createSearchLog = async (data: {
   userId?: string
