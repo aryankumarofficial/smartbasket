@@ -11,11 +11,14 @@ function toAuthUser(row: {
   name: string
   role: string | null
 }): AuthUser {
+  const r = row.role
+  const role: AuthUser["role"] =
+    r === "super_admin" ? "super_admin" : r === "admin" ? "admin" : "user"
   return {
     id: row.id,
     email: row.email,
     name: row.name,
-    role: row.role === "admin" ? "admin" : "user",
+    role,
   }
 }
 

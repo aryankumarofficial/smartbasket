@@ -26,7 +26,8 @@ async function verifyAccessJwt(token: string): Promise<AuthContext> {
   const { payload } = await jwtVerify(token, new TextEncoder().encode(secret))
 
   const userId = String(payload.sub ?? "")
-  const role = (payload.role as "user" | "admin" | undefined) ?? "user"
+  const role =
+    (payload.role as "user" | "admin" | "super_admin" | undefined) ?? "user"
 
   if (!userId) {
     throw new Error("Unauthorized")
