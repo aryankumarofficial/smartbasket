@@ -3,6 +3,7 @@ import { Queue, type JobsOptions } from "bullmq"
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://127.0.0.1:6379"
 
+/** Shared BullMQ Redis connection (exported for dedicated workers/queues). */
 export const queueConnection = new IORedis(REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
@@ -17,6 +18,7 @@ export const queueNames = {
   taggingGeneration: "generate-product-tags",
   tagSignalUpdate: "tag-signal-update",
   tagInsightsRefresh: "tag-insights-refresh",
+  emailDelivery: "email-delivery",
 } as const
 
 export const queues = {
@@ -42,6 +44,9 @@ export const queues = {
     connection: queueConnection,
   }),
   tagInsightsRefresh: new Queue(queueNames.tagInsightsRefresh, {
+    connection: queueConnection,
+  }),
+  emailDelivery: new Queue(queueNames.emailDelivery, {
     connection: queueConnection,
   }),
 }
