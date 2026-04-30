@@ -1,5 +1,6 @@
 import {
   createProduct,
+  deleteProduct,
   getProductById,
   getProducts,
   updateProduct,
@@ -22,4 +23,5 @@ export const productsRepository = {
       manualTags: input.manualTags,
     }),
   update: updateProduct,
+  delete: deleteProduct,
 }

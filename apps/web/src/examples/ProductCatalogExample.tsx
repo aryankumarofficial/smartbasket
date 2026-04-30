@@ -109,7 +109,12 @@ export function ProductCatalogExample() {
                   <p className="font-medium">{product.name}</p>
                   <p className="text-muted-foreground text-xs">{product.category ?? "Uncategorized"}</p>
                 </div>
-                <p className="font-mono text-sm">${product.price.toFixed(2)}</p>
+                <p className="font-mono text-sm">
+                  $
+                  {typeof product.price === "number"
+                    ? product.price.toFixed(2)
+                    : Number.parseFloat(String(product.price)).toFixed(2)}
+                </p>
               </li>
             ))}
           </ul>

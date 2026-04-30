@@ -80,3 +80,8 @@ export const updateProduct = async (
     .returning()
   return updated
 }
+
+export const deleteProduct = async (productId: string) => {
+  const [deleted] = await db.delete(products).where(eq(products.id, productId)).returning()
+  return deleted
+}

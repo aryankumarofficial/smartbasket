@@ -1,11 +1,20 @@
-/** Matches typical GET /api/products list payloads; tighten when shared types exist. */
+/** Matches GET /api/products and admin list payloads. */
 export interface ProductListItem {
   id: string
   name: string
+  title?: string | null
   description?: string | null
-  price: number
-  category?: string | null
+  /** Drizzle decimal serialized as string in JSON. */
+  price: string | number
+  category: string
   imageUrl?: string | null
+  images?: string[] | null
+  manualTags?: {
+    tag: string
+    category: "use_case" | "audience" | "price_segment" | "type"
+    weight: number
+    source: "manual" | "ai"
+  }[] | null
 }
 
 export interface ProductListResponse {

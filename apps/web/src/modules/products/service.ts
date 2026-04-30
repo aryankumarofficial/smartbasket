@@ -36,4 +36,8 @@ export const productsService = {
     }
     return updated
   },
+
+  async remove(id: string) {
+    return productsRepository.delete(id)
+  },
 }
