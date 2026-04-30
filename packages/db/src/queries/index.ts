@@ -1,5 +1,7 @@
 export * from "./user.js"
 export * from "./product.js"
+export * from "./order-admin.js"
+export * from "./admin-stats.js"
 export * from "./event.js"
 export * from "./category.js"
 export * from "./product-view.js"
