@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  BarChart3,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -28,6 +29,7 @@ import { useAuth } from "@/src/hooks/useAuth"
 
 const nav = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/users", label: "Users", icon: Users },

@@ -1,9 +1,13 @@
 "use client"
 
 import type { ComponentProps } from "react"
+import Link from "next/link"
+import { useMemo, useState } from "react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import { Label } from "@workspace/ui/components/label"
 import {
   Select,
   SelectContent,
@@ -25,6 +29,23 @@ import type { AdminOrderRow } from "@/src/types/admin"
 
 const STATUSES = ["pending", "paid", "shipped", "delivered", "cancelled"] as const
 
+function allowedNext(current: string): readonly string[] {
+  switch (current) {
+    case "pending":
+      return ["pending", "paid", "cancelled"]
+    case "paid":
+      return ["paid", "shipped", "cancelled"]
+    case "shipped":
+      return ["shipped", "delivered", "cancelled"]
+    case "delivered":
+      return ["delivered"]
+    case "cancelled":
+      return ["cancelled"]
+    default:
+      return [...STATUSES]
+  }
+}
+
 function statusBadgeVariant(status: string): ComponentProps<typeof Badge>["variant"] {
   switch (status) {
     case "delivered":
@@ -41,7 +62,20 @@ function statusBadgeVariant(status: string): ComponentProps<typeof Badge>["varia
 }
 
 export function AdminOrdersPanel() {
-  const { data, isPending, isError, error, refetch } = useAdminOrdersQuery()
+  const [status, setStatus] = useState<string>("")
+  const [q, setQ] = useState("")
+  const [appliedQ, setAppliedQ] = useState("")
+
+  const filters = useMemo(
+    () => ({
+      limit: 150,
+      status: status || undefined,
+      q: appliedQ.trim() || undefined,
+    }),
+    [status, appliedQ]
+  )
+
+  const { data, isPending, isError, error, refetch } = useAdminOrdersQuery(filters)
   const updateStatus = useUpdateOrderStatusMutation()
 
   const orders = data?.orders ?? []
@@ -65,12 +99,49 @@ export function AdminOrdersPanel() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
-        <p className="text-muted-foreground mt-1 text-sm">Fulfillment queue and status controls.</p>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Filter the queue, open detail for pricing breakdown, and move statuses with guardrails.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-4 md:flex-row md:items-end">
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs">Status</Label>
+          <Select value={status || "all"} onValueChange={(v) => setStatus(v === "all" ? "" : v)}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex max-w-md flex-1 flex-col gap-1">
+          <Label className="text-xs">Search customer</Label>
+          <div className="flex gap-2">
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Email or name"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") setAppliedQ(q)
+              }}
+            />
+            <Button type="button" variant="secondary" onClick={() => setAppliedQ(q)}>
+              Search
+            </Button>
+          </div>
+        </div>
       </div>
 
       {orders.length === 0 ? (
         <p className="text-muted-foreground border-border rounded-2xl border border-dashed p-10 text-center text-sm">
-          No orders yet.
+          No orders match your filters.
         </p>
       ) : (
         <div className="border-border rounded-2xl border shadow-sm">
@@ -82,6 +153,7 @@ export function AdminOrdersPanel() {
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[200px]">Update</TableHead>
+                <TableHead className="w-[100px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,13 +186,18 @@ export function AdminOrdersPanel() {
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        {STATUSES.map((s) => (
+                        {allowedNext(row.status).map((s) => (
                           <SelectItem key={s} value={s}>
                             {s}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/admin/orders/${row.id}`}>Detail</Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

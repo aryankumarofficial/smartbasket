@@ -14,7 +14,7 @@ export function AdminRoleGate({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated || !user) {
       return
     }
-    if (user.role !== "admin") {
+    if (user.role !== "admin" && user.role !== "super_admin") {
       router.replace("/")
     }
   }, [isAuthenticated, router, user])
@@ -28,7 +28,7 @@ export function AdminRoleGate({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (user.role !== "admin") {
+  if (user.role !== "admin" && user.role !== "super_admin") {
     return null
   }
 

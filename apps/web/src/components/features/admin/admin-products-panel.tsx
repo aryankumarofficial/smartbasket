@@ -1,6 +1,7 @@
 "use client"
 
-import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react"
+import { MoreHorizontal, Pencil, Plus, Search, Trash2 } from "lucide-react"
+import Link from "next/link"
 import { useMemo, useState } from "react"
 
 import { Badge } from "@workspace/ui/components/badge"
@@ -21,6 +22,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui/components/dropdown-menu"
+import { Input } from "@workspace/ui/components/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
 import {
   Table,
   TableBody,
@@ -43,7 +52,23 @@ import { toAdminProductDraft } from "@/src/components/features/admin/product-dra
 import type { ProductListItem } from "@/src/types/product"
 
 export function AdminProductsPanel() {
-  const { data, isPending, isError, error, refetch } = useAdminProductsQuery()
+  const [q, setQ] = useState("")
+  const [appliedQ, setAppliedQ] = useState("")
+  const [page, setPage] = useState(1)
+  const [sort, setSort] = useState<"created_desc" | "name" | "price_desc">("created_desc")
+  const limit = 15
+
+  const filters = useMemo(
+    () => ({
+      q: appliedQ.trim() || undefined,
+      page,
+      limit,
+      sort,
+    }),
+    [appliedQ, page, limit, sort]
+  )
+
+  const { data, isPending, isError, error, refetch } = useAdminProductsQuery(filters)
   const createMut = useCreateAdminProductMutation()
   const updateMut = useUpdateAdminProductMutation()
   const deleteMut = useDeleteAdminProductMutation()
@@ -53,6 +78,8 @@ export function AdminProductsPanel() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const rows: ProductListItem[] = useMemo(() => data?.products ?? [], [data])
+  const total = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / limit))
 
   async function handleSubmit(payload: { body: ProductUpsertInput; imageFiles?: File[] }) {
     if (editRow) {
@@ -88,65 +115,166 @@ export function AdminProductsPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Manage catalog items and media.</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Search, paginate, and open the full editor for complex merchandising.
+          </p>
         </div>
-        <Button
-          className="gap-2"
-          onClick={() => {
-            setEditRow(null)
-            setCreateOpen(true)
-          }}
-        >
-          <Plus className="size-4" />
-          Add product
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="default" className="gap-2">
+            <Link href="/admin/products/new">
+              <Plus className="size-4" />
+              Full editor
+            </Link>
+          </Button>
+          <Button
+            className="gap-2"
+            variant="outline"
+            onClick={() => {
+              setEditRow(null)
+              setCreateOpen(true)
+            }}
+          >
+            <Plus className="size-4" />
+            Quick add
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 md:flex-row md:items-end">
+        <div className="flex max-w-md flex-1 flex-col gap-1">
+          <label className="text-muted-foreground text-xs font-medium">Search</label>
+          <div className="flex gap-2">
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Name or description"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setAppliedQ(q)
+                  setPage(1)
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              aria-label="Search"
+              onClick={() => {
+                setAppliedQ(q)
+                setPage(1)
+              }}
+            >
+              <Search className="size-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-muted-foreground text-xs font-medium">Sort</label>
+          <Select
+            value={sort}
+            onValueChange={(v) => {
+              setSort(v as typeof sort)
+              setPage(1)
+            }}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_desc">Newest</SelectItem>
+              <SelectItem value="name">Name A–Z</SelectItem>
+              <SelectItem value="price_desc">Price high → low</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {rows.length === 0 ? (
         <p className="text-muted-foreground border-border rounded-2xl border border-dashed p-10 text-center text-sm">
-          No products yet. Create your first SKU to get started.
+          No products match your filters.
         </p>
       ) : (
         <div className="border-border rounded-2xl border shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
+                <TableHead className="w-16" />
+                <TableHead>Product</TableHead>
                 <TableHead className="text-right">Price</TableHead>
-                <TableHead className="w-[70px]" />
+                <TableHead className="text-right">Stock</TableHead>
+                <TableHead>Tags</TableHead>
+                <TableHead className="w-[120px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((row) => (
                 <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.title ?? row.name}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{row.category}</Badge>
+                    {row.imageUrl || row.images?.[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={(row.imageUrl ?? row.images?.[0]) as string}
+                        alt=""
+                        className="size-12 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="bg-muted size-12 rounded-md" />
+                    )}
                   </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <Link
+                        href={`/admin/products/${row.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {row.name}
+                      </Link>
+                      <span className="text-muted-foreground text-xs">{row.category}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{String(row.price)}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {typeof row.price === "string" ? row.price : row.price.toFixed(2)}
+                    {row.inventoryCount ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex max-w-[220px] flex-wrap gap-1">
+                      {(row.manualTags ?? []).slice(0, 4).map((t) => (
+                        <Badge key={`${t.tag}-${t.category}`} variant="outline" className="text-[10px]">
+                          {t.tag}
+                        </Badge>
+                      ))}
+                      {(row.manualTags?.length ?? 0) > 4 ? (
+                        <span className="text-muted-foreground text-xs">+{row.manualTags!.length - 4}</span>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" aria-label="Open row menu">
+                        <Button variant="ghost" size="icon" aria-label="Row actions">
                           <MoreHorizontal className="size-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/admin/products/${row.id}`} className="cursor-pointer gap-2">
+                            <Pencil className="size-4" />
+                            Edit (full)
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           className="gap-2"
                           onClick={() => {
-                            setCreateOpen(false)
                             setEditRow(toAdminProductDraft(row))
+                            setCreateOpen(true)
                           }}
                         >
                           <Pencil className="size-4" />
-                          Edit
+                          Quick edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive gap-2"
@@ -165,43 +293,60 @@ export function AdminProductsPanel() {
         </div>
       )}
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-muted-foreground text-sm">
+          Page {page} of {totalPages} · {total} products
+        </p>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+
       <ProductFormDialog
-        open={createOpen || !!editRow}
-        onOpenChange={(open) => {
-          if (!open) {
-            setCreateOpen(false)
-            setEditRow(null)
-          }
-        }}
-        title={editRow ? "Edit product" : "New product"}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
         product={editRow}
+        title={editRow ? "Edit product" : "Create product"}
         pending={busy}
         onSubmit={handleSubmit}
       />
 
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent className="sm:max-w-md">
+      <AlertDialog open={Boolean(deleteId)} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete product?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the SKU from the catalog. Orders referencing archived lines remain intact.
+              This permanently removes the catalog record. Orders referencing it keep line-item
+              snapshots.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel disabled={deleteMut.isPending}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-              disabled={deleteMut.isPending}
-              onClick={async (e) => {
-                e.preventDefault()
-                if (!deleteId) {
-                  return
-                }
-                await deleteMut.mutateAsync(deleteId)
-                setDeleteId(null)
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (!deleteId) return
+                void deleteMut.mutateAsync(deleteId).then(() => setDeleteId(null))
               }}
             >
-              {deleteMut.isPending ? "Deleting…" : "Delete"}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
