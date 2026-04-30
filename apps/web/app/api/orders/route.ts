@@ -23,8 +23,12 @@ const placeOrderBodySchema = z
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAccessUser(request)
+    const status = request.nextUrl.searchParams.get("status") ?? undefined
     const rows = await listOrdersForUser(user.sub)
-    const orders = rows.map((o) => ({
+    const filtered = status
+      ? rows.filter((o) => o.status === status)
+      : rows
+    const orders = filtered.map((o) => ({
       id: o.id,
       status: o.status as OrderStatus,
       totalCents: Math.round(Number(o.totalAmount) * 100),
