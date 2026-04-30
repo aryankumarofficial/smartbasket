@@ -10,10 +10,25 @@ export const SOCKET_EVENTS = {
 export type SocketClient = Socket
 
 /**
- * Real-time channel for orders/notifications only. Do not use for catalog or recommendations.
+ * Returns true when a Socket.IO server endpoint is explicitly configured.
+ * Without one, the client would attempt to connect to the page origin
+ * which — in a standard Next.js setup — is not a Socket.IO server and
+ * produces "connect ENOTSOCK /" errors.
  */
-export function createAuthenticatedSocket(accessToken: string): Socket {
-  const url = clientConfig.socketUrl || undefined
+export function isSocketConfigured(): boolean {
+  return Boolean(clientConfig.socketUrl)
+}
+
+/**
+ * Real-time channel for orders/notifications only. Do not use for catalog or recommendations.
+ * Returns `null` when no socket server URL is configured.
+ */
+export function createAuthenticatedSocket(accessToken: string): Socket | null {
+  if (!isSocketConfigured()) {
+    return null
+  }
+
+  const url = clientConfig.socketUrl
 
   return io(url, {
     path: clientConfig.socketPath,
@@ -21,7 +36,7 @@ export function createAuthenticatedSocket(accessToken: string): Socket {
     autoConnect: false,
     transports: ["websocket", "polling"],
     reconnection: true,
-    reconnectionAttempts: Number.POSITIVE_INFINITY,
+    reconnectionAttempts: 5,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10_000,
   })

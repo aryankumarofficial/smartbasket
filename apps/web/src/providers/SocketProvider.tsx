@@ -46,6 +46,11 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     const next = createAuthenticatedSocket(accessToken)
 
+    // No socket server configured — skip connection entirely.
+    if (!next) {
+      return
+    }
+
     const onConnect = () => setConnected(true)
     const onDisconnect = () => setConnected(false)
 

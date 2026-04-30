@@ -1,12 +1,30 @@
 import IORedis from "ioredis"
 import { Queue, type JobsOptions } from "bullmq"
+import { getQueueRedisUrl } from "./redis"
 
-const REDIS_URL = process.env.REDIS_URL ?? "redis://127.0.0.1:6379"
+const REDIS_URL = getQueueRedisUrl()
 
-/** Shared BullMQ Redis connection (exported for dedicated workers/queues). */
+/**
+ * Shared BullMQ Redis connection.
+ * `lazyConnect` prevents an immediate TCP handshake on module load;
+ * BullMQ will connect when the first job is enqueued / worker starts.
+ */
 export const queueConnection = new IORedis(REDIS_URL, {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
+  lazyConnect: true,
+  retryStrategy(times) {
+    // In development without a local Redis, stop retrying quickly.
+    if (times > 5) {
+      return null
+    }
+    return Math.min(times * 200, 3000)
+  },
+})
+
+queueConnection.on("error", (err) => {
+  // Log once-per-type instead of spamming the console.
+  console.error("[BullMQ Redis]", err.message)
 })
 
 export const queueNames = {

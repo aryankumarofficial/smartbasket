@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from typing import Generator
+from typing import Generator, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -49,7 +49,7 @@ def fetch_products(limit: int = 1000) -> list[dict]:
         return cur.fetchall()
 
 
-def fetch_product_by_id(product_id: str) -> dict | None:
+def fetch_product_by_id(product_id: str) -> Optional[dict]:
     """Fetch a single product by ID."""
     with get_cursor() as cur:
         cur.execute("SELECT * FROM products WHERE id = %s", (product_id,))
@@ -72,7 +72,7 @@ def fetch_user_events(user_id: str, limit: int = 500) -> list[dict]:
         return cur.fetchall()
 
 
-def fetch_user_profile(user_id: str) -> dict | None:
+def fetch_user_profile(user_id: str) -> Optional[dict]:
     """Fetch aggregated user profile."""
     with get_cursor() as cur:
         cur.execute(

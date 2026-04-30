@@ -1,0 +1,41 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: smartbasket-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - ml
+      - redis
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - AI_SERVICE_URL=http://ml:8000
+    restart: unless-stopped
+
+  ml:
+    build:
+      context: ./apps/ai
+      dockerfile: ../../docker/ml/Dockerfile
+    container_name: smartbasket-ml
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: smartbasket-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:

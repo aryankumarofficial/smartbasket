@@ -1,311 +1,158 @@
-# SmartBasket – AI-Powered Gifting Platform
+# SmartBasket
 
-## Overview
+SmartBasket is an AI-powered gifting and e-commerce platform built as a monorepo with a Next.js application (`apps/web`), a FastAPI ML service (`apps/ai`), and shared typed DB/query packages (`packages/db`).
 
-SmartBasket is an **AI-powered gifting platform that functions as a decision engine rather than a traditional e-commerce store**, designed to eliminate the complexity of choosing the right gift. Instead of browsing large product catalogs, users express intent through natural language or structured inputs such as recipient type, occasion, budget, and preferences. The system interprets this input, combines it with behavioral data (views, searches, purchases), and generates personalized, explainable recommendations. The experience is centered around AI-driven entry points such as the Gift Finder and conversational assistant, which guide users toward decisions instead of overwhelming them with options. Once a selection is made, the system transitions into a seamless purchase flow including cart management, checkout, and payment processing.
+## Project Overview
 
----
+SmartBasket combines a traditional storefront with event-driven personalization:
+
+- AI recommendations (cold-start + hybrid scoring + ML rerank)
+- behavioral event tracking pipeline (`/api/events` -> DB -> workers)
+- admin operations panel (products, orders, analytics, uploads)
+- ML integration for recommendations, similar products, reranking, and embeddings
 
 ## Tech Stack
 
-### Frontend
+- Frontend: Next.js App Router, Zustand, TanStack Query
+- Backend: Next.js Route Handlers (Node runtime patterns), PostgreSQL + Drizzle ORM
+- ML: FastAPI service with `sentence-transformers` embeddings and hybrid recommendation logic
+- Infra: Redis (BullMQ), Resend (email), object storage abstraction (R2/Cloudinary/ImageKit), Bun + Turborepo
 
-- Next.js (App Router)
-- React
-- Tailwind CSS
-- shadcn/ui
-- Zustand (UI state management)
-- TanStack Query (server state, caching, API sync)
+## Feature Set
 
-### Backend
-
-- Next.js API Routes (core backend: auth, cart, orders, events)
-- FastAPI (AI / ML service layer)
-
-### Database
-
-- PostgreSQL (Neon / Supabase)
-- Drizzle ORM
-- pgvector (required for vector similarity retrieval)
-
-### AI / ML Layer
-
-- Hybrid recommendation engine (rules + embeddings + LLM)
-- Semantic search (embedding-based)
-- Gift Finder (intent extraction via LLM)
-- Conversational assistant (RAG-like)
-
-### External Services
-
-- Claude API (LLM reasoning + ranking)
-- Razorpay (payments)
-- Cloudinary (media storage)
-- Redis (BullMQ queues + async worker orchestration)
-
-### Infrastructure
-
-- Bun (package manager)
-- Turborepo (monorepo orchestration)
-- Docker (optional)
-- Vercel (frontend)
-- Railway / Render (AI service)
-
----
+- authentication: JWT access token + refresh token HTTP-only cookie rotation
+- RBAC: `user`, `admin`, `super_admin` role checks on protected APIs
+- product catalog: structured metadata + tagging (`manual_tags`, `ai_tags`, `final_tags`)
+- order lifecycle: user order APIs + admin order management
+- event tracking: product/cart/wishlist/search/session + unified `user_events`
+- recommendations: cache-backed local strategy + AI service integration
+- admin dashboard: analytics, products, orders, upload flows
+- email system: queue-based outbound mail via BullMQ + Resend + React Email templates
 
 ## Monorepo Structure
 
-```
+```txt
 apps/
-  web/              # Next.js (frontend + API routes)
-    app/
-      api/
-        products/     # Product listing & detail APIs
-        events/       # Event ingestion API (behavioral tracking)
-        recommendations/  # Personalized recommendations API
-        search/       # Full-text search with filters
-        workers/      # Background job management API
-    lib/
-      services/       # Service layer (recommendation, search, events, profiles)
-      tracking/       # Frontend event tracking SDK
-      workers/        # Background workers (profile, embeddings, cache, cleanup)
-      types/          # Shared TypeScript types
-    hooks/            # React hooks (useTracking)
-  ai/               # FastAPI (AI/ML service)
-    app/
-      routers/        # API endpoint routers
-      services/       # ML services (embeddings, recommendations)
-      models/         # Pydantic schemas
-      utils/          # Database utilities
-
+  web/                  # Next.js app (UI + API + workers)
+  ai/                   # FastAPI ML service
 packages/
-  db/               # Drizzle ORM (schema + queries)
-    src/
-      schema/         # 16 tables: core + behavioral + ML-ready
-      queries/        # Query functions for all tables
-  ui/               # Shared UI components
-  types/            # Shared types
-  config/           # Shared configs
+  db/                   # Drizzle schema + query layer
+  ui/                   # Shared UI components
+  eslint-config/
+  typescript-config/
+scripts/
+  seed.ts               # Root seeding entrypoint
 ```
-
----
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js >= 20
-- Bun >= 1.3
-- Python >= 3.12 (for AI service)
-- PostgreSQL database
+- Bun `>=1.3`
+- Node.js `>=20`
+- PostgreSQL (with pgvector extension enabled for vector features)
+- Redis
+- Python `>=3.12` (for `apps/ai`)
 
-### Install
+### Installation
 
 ```bash
+git clone <repo-url>
+cd smartbasket
 bun install
+cp .env.example .env
 ```
 
-### Environment Variables
-
-Create a `.env` file in the root:
-
-```
-DATABASE_URL=your_postgres_url
-AI_SERVICE_URL=http://localhost:8000
-ANTHROPIC_API_KEY=your_key
-RAZORPAY_KEY_ID=xxx
-RAZORPAY_KEY_SECRET=xxx
-```
-
-### Run Web App
+### Database Setup
 
 ```bash
-bun run dev
-```
-
-### Run AI Service
-
-```bash
-cd apps/ai
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-### Run Workers
-
-```bash
-bun --cwd apps/web run workers
-```
-
-### Run DB Migrations
-
-```bash
-bun --cwd packages/db db:generate
 bun --cwd packages/db db:migrate
 ```
 
----
+### Seed Data (production-safe)
 
-## Database Schema
-
-### Core Tables
-
-| Table | Purpose |
-|-------|---------|
-| users | Authentication + profile |
-| products | Product catalog with rich metadata |
-| categories | Hierarchical product categories |
-| orders | Purchase records |
-| order_items | Line items per order |
-| carts | Cart state per user |
-| cart_items | Items in cart |
-
-### Behavioral Tracking Tables
-
-| Table | Purpose |
-|-------|---------|
-| product_views | Page views with duration tracking |
-| cart_events | Add/remove/update cart actions |
-| wishlist_events | Wishlist add/remove actions |
-| search_logs | Search queries with filters and results |
-| user_sessions | Session lifecycle tracking |
-| user_events | Generic event audit trail |
-
-### ML-Ready Tables
-
-| Table | Purpose |
-|-------|---------|
-| user_profiles | Aggregated behavioral profiles |
-| product_embeddings | Vector storage for products |
-| user_embeddings | Vector storage for users |
-| recommendation_cache | Precomputed recommendations |
-| preferences | User preference settings |
-
----
-
-## API Reference
-
-### Products
-
-- `GET /api/products` — List products (filters: category, minPrice, maxPrice)
-- `GET /api/products/:id` — Get product by ID
-
-### Events
-
-- `POST /api/events` — Ingest tracking events (single or batch)
-
-### Recommendations
-
-- `GET /api/recommendations?userId=` — Personalized recommendations
-- `GET /api/recommendations/similar/:productId` — Similar products
-
-### Search
-
-- `GET /api/search?q=` — Full-text search with filters, sorting, pagination
-
-### Workers
-
-- `GET /api/workers` — Get background job status
-- `POST /api/workers` — Trigger a specific background job
-
-### AI Service (FastAPI)
-
-- `POST /recommend/:user_id` — ML-powered recommendations
-- `GET /similar-products/:product_id` — Embedding-based similarity
-- `POST /search-rerank` — Semantic search reranking
-- `POST /embeddings/product` — Generate product embedding
-- `POST /embeddings/products/batch` — Batch embedding generation
-- `GET /health` — Health check
-
----
-
-## Event Tracking
-
-The system captures deep user behavior through a multi-layer pipeline:
-
-```
-Frontend (SDK) → /api/events → Database (raw logs) → Workers → ML Service
+```bash
+bun run seed
 ```
 
-### Tracked Events
+Seeding guard:
 
-- Product views (with time spent)
-- Cart actions (add, remove, quantity change)
-- Wishlist actions (add, remove)
-- Search queries and result clicks
-- Purchases
-- Session lifecycle (start, end, device info)
+- `scripts/seed.ts` refuses to run in production unless `ALLOW_PRODUCTION_SEED=true`.
 
-### Frontend Integration
+### Run Services
 
-```tsx
-import { useTracking } from "@/hooks/use-tracking"
+- Web app (frontend + API):
+  ```bash
+  bun run --filter=web dev
+  ```
+- Workers:
+  ```bash
+  bun --cwd apps/web run workers
+  ```
+- ML service (optional but recommended for full recommendation quality):
+  ```bash
+  cd apps/ai
+  pip install -r requirements.txt
+  uvicorn app.main:app --reload --port 8000
+  ```
 
-function ProductPage({ product }) {
-  const { trackProductView, trackCartAdd } = useTracking(userId)
+## Script Reference
 
-  useEffect(() => {
-    const endTracking = trackProductView(product.id, "search")
-    return endTracking // tracks view duration on unmount
-  }, [product.id])
+Root (`package.json`):
 
-  return <button onClick={() => trackCartAdd(product.id)}>Add to Cart</button>
-}
-```
+- `bun run dev` - turbo dev for workspace
+- `bun run build` - turbo build
+- `bun run typecheck` - turbo typecheck
+- `bun run seed` - run full bootstrap seed pipeline
 
----
+Web (`apps/web/package.json`):
 
-## Background Workers
+- `bun run --filter=web dev` - start Next.js dev server
+- `bun run --filter=web build` - production build
+- `bun run --filter=web start` - start production server
+- `bun run --filter=web workers` - start BullMQ workers
 
-| Job | Interval | Purpose |
-|-----|----------|---------|
-| Profile Aggregation | queue-driven | Rebuild user profiles (targeted or batch) |
-| Embedding Generation | queue-driven | Generate single-product or batch embeddings |
-| Recommendation Precompute | queue-driven | Pre-cache recommendations per user or batch |
-| Session Cleanup | queue-driven | Remove old sessions (> 30 days) |
-| Cache Cleanup | queue-driven | Remove expired recommendation cache entries |
+DB (`packages/db/package.json`):
 
----
+- `bun --cwd packages/db db:generate` - generate migrations
+- `bun --cwd packages/db db:migrate` - apply migrations
+- `bun --cwd packages/db db:push` - push schema directly
 
-## Recommendation Strategy
+## API and Worker Highlights
 
-| User State | Strategy | Details |
-|-----------|----------|---------|
-| Anonymous / New | Cold Start | Popular + trending + wishlisted products |
-| < 5 views | Cold Start | Same as above with context boosting |
-| Active (5+ views) | Hybrid | ML service → local rule-based fallback |
-| Real-time (search/chat) | Real-time | Bypasses cache, fresh computation |
+Key API route groups in `apps/web/app/api`:
 
----
+- `auth/*`: login/register/refresh/logout/forgot-password
+- `products/*`, `search/*`, `recommendations/*`, `similar-products/*`
+- `user/*`: account/cart/wishlist
+- `orders/*`
+- `admin/*`: products/orders/stats/analytics/uploads
+- `events`: behavioral ingestion
+- `workers`: queue health + manual job trigger
 
-## Key Concepts
+Key queue jobs in `apps/web/lib/workers/queues.ts`:
 
-- Event-driven system powers personalization
-- ML is used for ranking, not as the core system
-- Strong separation between UI state and server state
-- AI layer operates independently via FastAPI
-- Hybrid recommendation: rules + embeddings + LLM
+- profile aggregation
+- embedding generation
+- recommendation precompute
+- session/cache cleanup
+- product tag generation + tag signal updates
+- email delivery
 
----
+## Configuration
 
-## Development Workflow
+All environment variables are documented in `.env.example`.
 
-1. Update schema → generate migration
-2. Add query in `@workspace/db`
-3. Create/update service in `lib/services/`
-4. Add API route in `app/api/`
-5. Fetch via TanStack Query
-6. Update UI via Zustand
+Most important required variables:
 
----
+- `DATABASE_URL`
+- `REDIS_URL`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `RESEND_API_KEY`
+- `AI_SERVICE_URL`
 
-## Status
+For storage uploads:
 
-- DB schema + relations (16 tables)
-- Monorepo setup (Bun + Turbo)
-- Query layer (12 query modules)
-- Service layer (4 services)
-- API routes (products, events, recommendations, search, workers)
-- ML FastAPI service (recommendations, embeddings, search rerank)
-- Background workers (profile, embeddings, cache, cleanup)
-- Event tracking pipeline (frontend SDK → API → DB → Workers → ML)
-- Recommendation strategies (cold start, hybrid, real-time)
+- Set `UPLOAD_PROVIDER` to `r2`, `cloudinary`, or `imagekit`
+- Provide matching provider credentials/base URLs

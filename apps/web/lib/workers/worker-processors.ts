@@ -24,8 +24,9 @@ import { startTaggingWorker } from "@/src/workers/tagging.worker"
 import { applyEventSignalToProductTags } from "./tag-signal-updater"
 import { refreshProductDerivedInsights } from "./tag-insights-refresher"
 import { startEmailWorker } from "@/src/workers/email.worker"
+import { getQueueRedisUrl } from "./redis"
 
-const REDIS_URL = process.env.REDIS_URL ?? "redis://127.0.0.1:6379"
+const REDIS_URL = getQueueRedisUrl()
 
 let workersStarted = false
 const connection = new IORedis(REDIS_URL, {

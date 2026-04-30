@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any
+from typing import Any, Dict, Optional
 
 import numpy as np
 
@@ -25,7 +25,7 @@ class RecommendationService:
         self,
         user_id: str,
         limit: int = 20,
-        context: dict | None = None,
+        context: Optional[Dict] = None,
     ) -> tuple[list[RecommendedProduct], str]:
         """Generate recommendations for a user.
 
@@ -74,7 +74,7 @@ class RecommendationService:
         self,
         query: str,
         product_ids: list[str],
-        user_id: str | None = None,
+        user_id: Optional[str] = None,
         limit: int = 20,
     ) -> tuple[list[str], list[float]]:
         """Rerank search results using semantic similarity."""
@@ -107,7 +107,7 @@ class RecommendationService:
         return [s[0] for s in scored], [s[1] for s in scored]
 
     def _cold_start(
-        self, limit: int, context: dict | None = None
+        self, limit: int, context: Optional[Dict] = None
     ) -> list[RecommendedProduct]:
         """Popular + rule-based recommendations for new users."""
         products = fetch_products(limit=200)
@@ -145,10 +145,10 @@ class RecommendationService:
     def _hybrid_recommend(
         self,
         user_id: str,
-        profile: dict | None,
+        profile: Optional[dict],
         events: list[dict],
         limit: int,
-        context: dict | None = None,
+        context: Optional[Dict] = None,
     ) -> list[RecommendedProduct]:
         """Combine content-based, collaborative, and rule-based signals."""
         products = fetch_products(limit=500)

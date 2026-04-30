@@ -1,9 +1,11 @@
+from typing import Dict, Optional
+
 from pydantic import BaseModel, Field
 
 
 class RecommendationRequest(BaseModel):
     limit: int = Field(default=20, ge=1, le=100)
-    context: dict | None = None
+    context: Optional[Dict] = None
 
 
 class RecommendedProduct(BaseModel):
@@ -28,7 +30,7 @@ class SimilarProductsResponse(BaseModel):
 class SearchRerankRequest(BaseModel):
     query: str
     product_ids: list[str]
-    user_id: str | None = None
+    user_id: Optional[str] = None
     limit: int = Field(default=20, ge=1, le=100)
 
 
@@ -65,9 +67,9 @@ class ProductTag(BaseModel):
 class ProductTaggingRequest(BaseModel):
     productId: str
     title: str
-    description: str | None = None
-    category: str | None = None
-    metadata: dict | None = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    metadata: Optional[Dict] = None
 
 
 class ProductTaggingResponse(BaseModel):

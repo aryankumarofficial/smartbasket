@@ -1,326 +1,245 @@
-# System Architecture
+# SmartBasket Architecture
 
-## Core Principle
+This document describes the current implementation architecture of SmartBasket based on the repository code (Next.js web/API + BullMQ workers + FastAPI ML service + PostgreSQL/Drizzle).
 
-> This system is a **decision engine with commerce attached**
-> ML improves ranking — it is not the system itself.
+## System Overview
 
----
+SmartBasket is an event-driven commerce platform. User activity is continuously captured, persisted, and transformed into recommendation signals.
 
-## High-Level System Diagram
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     FRONTEND LAYER                          │
-│  Next.js (App Router) + React + Tailwind + shadcn/ui       │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────────────┐  │
-│  │  Zustand  │  │ TanStack │  │  Event Tracking SDK      │  │
-│  │ (UI State)│  │  Query   │  │  (batching, sessions)    │  │
-│  └──────────┘  └──────────┘  └──────────────────────────┘  │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    API LAYER (Next.js)                       │
-│  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌─────────┐ │
-│  │ /products │  │  /events  │  │  /search   │  │/workers │ │
-│  └───────────┘  └───────────┘  └───────────┘  └─────────┘ │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │ /recommendations  ·  /recommendations/similar/:id    │   │
-│  └──────────────────────────────────────────────────────┘   │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-          ┌────────────┼───────────────┐
-          ▼            ▼               ▼
-┌──────────────┐ ┌───────────┐ ┌─────────────────┐
-│  SERVICE     │ │ WORKERS   │ │  AI SERVICE      │
-│  LAYER       │ │           │ │  (FastAPI)        │
-│              │ │ Profile   │ │                   │
-│ EventTracker │ │ BullMQ    │ │ /recommend/:id    │
-│ UserProfile  │ │ Embeddings│ │ /similar/:id      │
-│ Search       │ │ Rec Cache │ │ /search-rerank    │
-│ Recommender  │ │ Cleanup   │ │ /embeddings       │
-└──────┬───────┘ └─────┬─────┘ └────────┬──────────┘
-       │               │                │
-       └───────────────┼────────────────┘
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    DATABASE LAYER                            │
-│                  PostgreSQL + Drizzle ORM                    │
-│                                                             │
-│  ┌─────────┐ ┌──────────┐ ┌───────────┐ ┌───────────────┐ │
-│  │  Core   │ │Behavioral│ │  ML-Ready │ │  Commerce     │ │
-│  │ Tables  │ │ Tracking │ │  Tables   │ │  Tables       │ │
-│  │         │ │          │ │           │ │               │ │
-│  │ users   │ │ product_ │ │ user_     │ │ carts         │ │
-│  │products │ │  views   │ │  profiles │ │ cart_items    │ │
-│  │categor- │ │ cart_    │ │ product_  │ │ orders        │ │
-│  │  ies    │ │  events  │ │  embed-   │ │ order_items  │ │
-│  │         │ │ wishlist_│ │   dings   │ │               │ │
-│  │         │ │  events  │ │ user_     │ │               │ │
-│  │         │ │ search_  │ │  embed-   │ │               │ │
-│  │         │ │  logs    │ │   dings   │ │               │ │
-│  │         │ │ user_    │ │ rec_cache │ │               │ │
-│  │         │ │  sessions│ │           │ │               │ │
-│  │         │ │ user_    │ │           │ │               │ │
-│  │         │ │  events  │ │           │ │               │ │
-│  └─────────┘ └──────────┘ └───────────┘ └───────────────┘ │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+  frontend[FrontendNextjsAppRouter] --> api[NextjsApiRoutes]
+  api --> db[(PostgreSQLDrizzle)]
+  api --> queue[RedisBullMQQueues]
+  queue --> workers[BackgroundWorkers]
+  workers --> db
+  workers --> ml[FastApiMlService]
+  ml --> db
+  api --> ml
 ```
 
----
+## Core Layers
 
-## Layer Breakdown
+### 1) Frontend Layer
 
-### 1. Frontend Layer
+Primary implementation is in `apps/web`:
 
-Responsibilities:
-- UI rendering
-- User interaction
-- Event tracking (via SDK)
+- UI + routing: Next.js App Router (`apps/web/app`)
+- Client state: Zustand
+- Server state/cache: TanStack Query
+- Tracking SDK: `apps/web/lib/tracking/event-tracker.ts`
 
-#### State Management
+Design split:
 
-| Type | Tool | Responsibility |
-|------|------|---------------|
-| UI State | Zustand | modals, cart UI, chat UI |
-| Server State | TanStack Query | API data, caching |
-| Tracking | Event SDK | behavioral data capture |
+- UI state is local/client-focused
+- server state is query-cached and invalidated via API events
 
----
+### 2) Backend Layer (Next.js API)
 
-### 2. API Layer (Next.js)
+Route handlers live under `apps/web/app/api`.
 
-#### Routes
+Major route groups:
 
-| Route | Method | Purpose |
-|-------|--------|---------|
-| /api/products | GET | Product listing with filters |
-| /api/products/:id | GET | Product detail |
-| /api/events | POST | Event ingestion (single/batch) |
-| /api/recommendations | GET | Personalized recommendations |
-| /api/recommendations/similar/:id | GET | Similar products |
-| /api/search | GET | Full-text search |
-| /api/workers | GET/POST | Job status & manual triggers |
+- auth: login/register/refresh/logout/forgot-password
+- catalog/search/recommendations
+- user account/cart/wishlist/orders
+- admin products/orders/stats/analytics/uploads
+- event ingestion (`/api/events`)
+- worker control/status (`/api/workers`)
 
-#### Service Layer
+Code organization combines:
 
-| Service | Responsibility |
-|---------|---------------|
-| EventTrackingService | Route events to correct tables |
-| UserProfileService | Aggregate behavior into profiles |
-| SearchService | Full-text search with filters |
-| RecommendationService | Hybrid recommendation engine |
+- module-style slices (`src/modules/*`: controller/service/repository)
+- shared operational services (`lib/services/*`)
+- typed DB query package (`@workspace/db/queries/*`)
 
----
+### 3) Database Layer
 
-### 3. Database Layer
+DB package: `packages/db`
 
-Located in `@workspace/db`
+- client bootstrap: `packages/db/src/client.ts`
+- schema: `packages/db/src/schema/*.ts`
+- query modules: `packages/db/src/queries/*.ts`
 
-#### Schema: 16 Tables
+Key table groups:
 
-**Core:** users, products, categories
-**Commerce:** carts, cart_items, orders, order_items
-**Behavioral:** product_views, cart_events, wishlist_events, search_logs, user_sessions, user_events
-**ML-Ready:** user_profiles, product_embeddings, user_embeddings, recommendation_cache, preferences
+- identity/core: `users`, `categories`, `products`
+- commerce: `carts`, `cart_items`, `orders`, `order_items`
+- event logs: `product_views`, `cart_events`, `wishlist_events`, `search_logs`, `user_sessions`, `user_events`
+- recommendation/ML: `user_profiles`, `recommendation_cache`, `product_embeddings`, `user_embeddings`, `preferences`
+- analytics/tagging: `product_tag_signals`, `tag_insights`, `category_insights`
+- notifications: `email_logs`
 
-#### Design Principles
+Indexing:
 
-- Proper indexing on user_id, product_id, session_id, timestamp
-- JSONB for flexible attributes (tags, occasions, affinities)
-- pgvector for product/user embedding similarity
-- Event-driven design (append-only behavioral logs)
-- Foreign key relationships with cascading deletes
+- btree indexes on FK/time/action columns
+- pgvector with ivfflat cosine indexes for embeddings
 
----
+### 4) Event Tracking Pipeline
 
-### 4. AI Layer (FastAPI)
+Flow:
 
-#### Endpoints
+UI -> `POST /api/events` -> event normalization -> multi-table inserts -> queue dispatch
 
-| Endpoint | Purpose |
-|----------|---------|
-| POST /recommend/:user_id | Personalized recommendations |
-| GET /similar-products/:product_id | Embedding-based similarity |
-| POST /search-rerank | Semantic search reranking |
-| POST /embeddings/product | Single product embedding |
-| POST /embeddings/products/batch | Batch embedding generation |
+Concrete components:
 
-#### ML Components
+- API entry: `apps/web/app/api/events/route.ts`
+- orchestrator: `apps/web/lib/services/event-tracking.service.ts`
+- normalizer: `apps/web/lib/tracking/event-normalizer.ts`
+- queue fan-out: `apps/web/lib/workers/event-dispatcher.ts`
 
-- **EmbeddingService**: sentence-transformers (all-MiniLM-L6-v2)
-- **RecommendationService**: hybrid scoring engine
-- Direct PostgreSQL access for ML queries
+Captured events include:
 
----
+- product views (duration/source)
+- cart add/update/remove
+- wishlist add/remove
+- search queries + selection context
+- session lifecycle
+- generic user event audit trail
 
-### 5. Background Workers
+Why it matters:
 
-| Worker | Interval | Purpose |
-|--------|----------|---------|
-| Profile Aggregator | 1 hour | Rebuild user_profiles from events |
-| Embedding Generator | 6 hours | Generate product embeddings |
-| Recommendation Precomputer | 30 min | Pre-cache for active users |
-| Session Cleanup | Daily | Remove old sessions (>30 days) |
-| Cache Cleanup | 15 min | Remove expired cache entries |
+- drives user profile aggregation
+- powers recommendation precompute and cache freshness
+- provides ML training and retrieval context
 
----
+### 5) Background Workers
 
-## Data Flow
+Queue definitions: `apps/web/lib/workers/queues.ts`  
+Worker startup: `apps/web/lib/workers/worker-processors.ts`  
+Redis resolver: `apps/web/lib/workers/redis.ts`
 
-### Event Tracking Pipeline
+Queues/jobs:
 
-```
-User Action (click, search, add to cart)
-    │
-    ▼
-Frontend SDK (batch events, 5s flush)
-    │
-    ▼
-POST /api/events
-    │
-    ▼
-EventTrackingService (route to correct table)
-    │
-    ├──→ product_views (views with duration)
-    ├──→ cart_events (add/remove/update)
-    ├──→ wishlist_events (add/remove)
-    ├──→ search_logs (queries, filters, clicks)
-    ├──→ user_sessions (lifecycle)
-    └──→ user_events (audit trail)
-    │
-    ▼
-Background Workers (Redis + BullMQ queues)
-    │
-    ├──→ Profile Aggregator → user_profiles
-    ├──→ Embedding Generator → product_embeddings (pgvector)
-    └──→ Recommendation Precomputer → recommendation_cache
-    │
-    ▼
-ML Service (on-demand)
-    │
-    └──→ Personalized recommendations
-```
+- `profile-aggregation`
+- `embedding-generation`
+- `recommendation-precompute`
+- `session-cleanup`
+- `cache-cleanup`
+- `generate-product-tags`
+- `tag-signal-update`
+- `tag-insights-refresh`
+- `email-delivery`
 
-### Recommendation Pipeline
+Specialized workers:
 
-```
-Request (userId, context)
-    │
-    ▼
-Strategy Selector
-    │
-    ├── Cold Start (< 5 views)
-    │   └── Popular + Trending + Wishlisted → Merge & Score
-    │
-    ├── Warm User (5+ views)
-    │   ├── Check Cache → Return if valid
-    │   ├── Try ML Service → Hybrid scoring
-    │   └── Fallback → Local rule-based scoring
-    │
-    └── Real-Time (search/chat)
-        └── Bypass cache → Fresh computation
-    │
-    ▼
-Score Computation
-    │
-    ├── Category Affinity (×3 weight)
-    ├── Occasion Match (×4 weight)
-    ├── Price Fit (×2 weight)
-    ├── Rating Boost (×0.5 weight)
-    └── Recency Boost (+1/+0.5)
-    │
-    ▼
-Cache Result (TTL: 15-30 min)
-    │
-    ▼
-Return to UI
-```
+- tagging worker: `apps/web/src/workers/tagging.worker.ts`
+- email worker: `apps/web/src/workers/email.worker.ts`
 
----
+### 6) ML Layer (FastAPI)
 
-## Key Tables Detail
+Service root: `apps/ai`
 
-| Table | Key Columns | Indexes |
-|-------|-------------|---------|
-| users | id, email, name, role | email, id |
-| products | id, name, price, category, tags, occasions | category, price, occasions, tags |
-| categories | id, name, slug, parent_id | slug, parent_id |
-| product_views | user_id, product_id, duration, source | user_id, product_id, created_at |
-| cart_events | user_id, product_id, action, quantity | user_id, product_id, action |
-| search_logs | user_id, query, filters, result_count | user_id, query, created_at |
-| user_profiles | user_id, category_affinities, segment | user_id, segment |
-| product_embeddings | product_id, embedding, model | product_id, model |
-| recommendation_cache | user_id, strategy, recommendations, expires_at | user_id+strategy, expires_at |
+- app init/router registration: `apps/ai/app/main.py`
+- recommendation router: `apps/ai/app/routers/recommendations.py`
+- similar products router: `apps/ai/app/routers/similar.py`
+- rerank router: `apps/ai/app/routers/search.py`
+- embeddings router: `apps/ai/app/routers/embeddings.py`
+- tagging router: `apps/ai/app/routers/tagging.py`
 
----
+Core behaviors:
 
-## Caching Strategy
+- cold-start and hybrid recommendation strategy
+- similar-product retrieval via embedding distance + fallback
+- query reranking using semantic similarity
+- single and batch embedding generation with DB upserts
 
-| Data | TTL | Strategy |
-|------|-----|----------|
-| Homepage feed | 30 min | Precomputed via workers |
-| Search results | 5–10 min | TanStack Query client cache |
-| Recommendations (warm) | 30 min | DB-backed recommendation_cache |
-| Recommendations (fallback) | 15 min | DB-backed recommendation_cache |
-| Real-time recs | 0 (no cache) | Fresh computation per request |
+Data sources:
 
----
+- `products`
+- `user_events`
+- `user_profiles`
+- `product_embeddings`
 
-## Design Decisions
+### 7) Email System
 
-### Zustand + TanStack Query
-- Separates UI vs server state
-- Reduces complexity
+Queue-first delivery architecture:
 
-### FastAPI for ML
-- Python ecosystem access
-- sentence-transformers, scikit-learn, numpy
-- Independent scaling from web app
-- Native pgvector similarity queries for low-latency retrieval
+- enqueue: `apps/web/src/queues/email.queue.ts`
+- worker execution: `apps/web/src/workers/email.worker.ts`
+- provider integration: `apps/web/src/services/email.service.tsx`
+- delivery tracking: `email_logs` table + `packages/db/src/queries/email-log.ts`
 
-### Drizzle ORM
-- SQL-first, type-safe
-- Relation support with query API
+Email types currently wired:
 
-### Event-Driven Architecture
-- Append-only behavioral logs
-- Decoupled ingestion from processing
-- Worker-based aggregation
+- order confirmation
+- order shipped
+- password reset
+- admin onboarding
 
-### Hybrid Recommendations
-- Rule-based is fast and reliable
-- Embeddings improve relevance
-- ML service is optional (graceful fallback)
+### 8) Storage Layer
 
----
+Upload abstraction:
+
+- `apps/web/src/services/upload.service.ts`
+
+Provider selection:
+
+- `UPLOAD_PROVIDER` (`r2` default, `cloudinary`, `imagekit`)
+
+R2 path:
+
+- AWS SDK S3-compatible upload using account/bucket credentials
+
+Cloudinary/ImageKit path:
+
+- base-URL based path composition in current implementation
+
+Admin upload endpoint:
+
+- `apps/web/app/api/admin/uploads/products/[productId]/route.ts`
+
+### 9) Auth System
+
+Token/cookie stack:
+
+- token signing/verification: `apps/web/src/lib/auth/tokens.ts`
+- refresh cookie config: `apps/web/src/lib/auth/cookies.ts`
+- cookie naming: `apps/web/src/config/auth-edge.ts`
+- API guard helpers:
+  - admin: `apps/web/src/lib/auth/admin-guard.ts`
+  - user: `apps/web/src/lib/auth/api-auth.ts`
+
+Flow:
+
+- login issues access JWT + refresh JWT cookie
+- refresh route validates/rotates refresh token
+- protected routes validate access token and role requirements
+
+## Data Flow Diagrams (Textual)
+
+### Product interaction to recommendation update
+
+1. User views product in UI.
+2. Tracking SDK batches and posts to `/api/events`.
+3. Event service writes `product_views` and `user_events`.
+4. Event dispatcher enqueues profile/recommendation/tag signal jobs.
+5. Workers refresh `user_profiles` and `recommendation_cache`.
+6. Recommendations API returns fresh or cached recommendations.
+
+### Purchase and communication flow
+
+1. User creates order via `/api/orders`.
+2. Backend persists order + items in DB.
+3. Email log row is created.
+4. `email-delivery` queue receives job payload.
+5. Email worker renders template and calls Resend.
+6. `email_logs` status updates to `sent` or `failed`.
 
 ## Scalability Considerations
 
-- **Database**: Proper indexing, JSONB for flexibility, append-only logs
-- **Workers**: Durable Redis queues with retries/backoff and isolated processors
-- **ML Service**: Stateless, horizontally scalable, Docker-ready
-- **Caching**: Multi-level (client, DB-backed, precomputed)
-- **Event Pipeline**: Batched ingestion, async processing
-- **Designed for 100K+ users**: Session management, profile aggregation, recommendation precomputation
+- stateless API handlers with externalized state (DB + Redis)
+- asynchronous workers for expensive and retryable work
+- recommendation cache table to reduce hot-path recomputation
+- DB indexing for high-cardinality event access paths
+- client-side server-state caching via TanStack Query
+- ML service can scale independently from Next.js app
 
----
+## Security Considerations
 
-## What We Avoid
-
-- Heavy ML pipelines that block user requests
-- Unnecessary microservices (just web + AI)
-- Storing server state in client state
-- Monolithic files (modular services pattern)
-
----
-
-## Future Enhancements
-
-- pgvector integration for native vector similarity
-- Streaming AI responses (SSE)
-- Advanced ranking models (collaborative filtering)
-- A/B testing framework
-- Feedback loops (implicit + explicit)
-- WebSocket real-time updates
+- refresh token stored in HTTP-only cookie
+- access token is short-lived and rotated through refresh flow
+- RBAC checks at admin/user route boundaries
+- zod validation on input DTOs in route handlers
+- secrets loaded from env (no hardcoded production secrets expected)
+- seed runner has production execution guard
