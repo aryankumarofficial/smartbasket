@@ -23,6 +23,7 @@ import { aggregateUserProfile } from "./profile-aggregator"
 import { startTaggingWorker } from "@/src/workers/tagging.worker"
 import { applyEventSignalToProductTags } from "./tag-signal-updater"
 import { refreshProductDerivedInsights } from "./tag-insights-refresher"
+import { startEmailWorker } from "@/src/workers/email.worker"
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://127.0.0.1:6379"
 
@@ -96,6 +97,8 @@ export function startQueueWorkers() {
     async () => refreshProductDerivedInsights(),
     { connection }
   )
+
+  startEmailWorker(connection)
 }
 
 export async function enqueueRecurringJobs() {

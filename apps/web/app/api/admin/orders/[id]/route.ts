@@ -3,6 +3,9 @@ import { z } from "zod"
 
 import { updateOrderStatus } from "@workspace/db/queries/order-admin"
 import { requireAdminRequest } from "@/src/lib/auth/admin-guard"
+import { enqueueEmailJob } from "@/src/queues/email.queue"
+import { createEmailLog } from "@workspace/db/queries/email-log"
+import { getOrderById, getOrderEmailContext } from "@workspace/db/queries/orders"
 
 const patchSchema = z.object({
   status: z.enum(["pending", "paid", "shipped", "delivered", "cancelled"]),
@@ -16,10 +19,32 @@ export async function PATCH(
     await requireAdminRequest(request)
     const { id } = await params
     const body = patchSchema.parse(await request.json())
+    const prior = await getOrderById(id)
     const updated = await updateOrderStatus(id, body.status)
     if (!updated) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
+
+    if (
+      body.status === "shipped" &&
+      prior &&
+      prior.status !== "shipped"
+    ) {
+      const ctx = await getOrderEmailContext(id)
+      if (ctx) {
+        const log = await createEmailLog({
+          userId: ctx.userId,
+          recipientEmail: ctx.userEmail,
+          emailType: "SEND_ORDER_SHIPPED",
+        })
+        await enqueueEmailJob({
+          type: "SEND_ORDER_SHIPPED",
+          emailLogId: log.id,
+          orderId: id,
+        })
+      }
+    }
+
     return NextResponse.json({ order: updated })
   } catch (error) {
     if (error instanceof z.ZodError) {
