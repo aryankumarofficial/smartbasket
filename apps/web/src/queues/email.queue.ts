@@ -26,6 +26,13 @@ export type EmailJobPayload =
       userId: string
       resetUrl: string
     }
+  | {
+      type: "ADMIN_ONBOARDING"
+      emailLogId: string
+      userId: string
+      temporaryPassword: string
+      loginUrl: string
+    }
 
 export async function enqueueEmailJob(payload: EmailJobPayload) {
   return queues.emailDelivery.add("deliver", payload, emailJobOptions)

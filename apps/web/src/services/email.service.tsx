@@ -146,4 +146,48 @@ export const emailService = {
     }
     return data
   },
+
+  async sendAdminOnboarding(input: {
+    to: string
+    adminName: string
+    role: "admin" | "super_admin"
+    temporaryPassword: string
+    loginUrl: string
+  }) {
+    const roleLabel =
+      input.role === "super_admin" ? "Super Admin" : "Admin"
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111">
+        <h2>Welcome to SmartBasket Admin</h2>
+        <p>Hi ${input.adminName},</p>
+        <p>Your ${roleLabel} account is ready.</p>
+        <p><strong>Login URL:</strong> <a href="${input.loginUrl}">${input.loginUrl}</a></p>
+        <p><strong>Email:</strong> ${input.to}</p>
+        <p><strong>Temporary Password:</strong> ${input.temporaryPassword}</p>
+        <p>Please sign in and rotate your password immediately.</p>
+      </div>
+    `
+    const text = [
+      "Welcome to SmartBasket Admin",
+      `Hi ${input.adminName},`,
+      `Your ${roleLabel} account is ready.`,
+      `Login URL: ${input.loginUrl}`,
+      `Email: ${input.to}`,
+      `Temporary Password: ${input.temporaryPassword}`,
+      "Please sign in and rotate your password immediately.",
+    ].join("\n")
+
+    const { data, error } = await getResendClient().emails.send({
+      from: getFromAddress(),
+      to: input.to,
+      subject: "Your SmartBasket admin account is ready",
+      html,
+      text,
+    })
+
+    if (error) {
+      throw new Error(error.message ?? "Resend rejected the message")
+    }
+    return data
+  },
 }

@@ -22,6 +22,17 @@ function isEmailJobPayload(data: unknown): data is EmailJobPayload {
     const o = data as { emailLogId?: string; userId?: string; resetUrl?: string }
     return Boolean(o.emailLogId && o.userId && o.resetUrl)
   }
+  if (t === "ADMIN_ONBOARDING") {
+    const o = data as {
+      emailLogId?: string
+      userId?: string
+      temporaryPassword?: string
+      loginUrl?: string
+    }
+    return Boolean(
+      o.emailLogId && o.userId && o.temporaryPassword && o.loginUrl
+    )
+  }
   return false
 }
 
@@ -116,6 +127,34 @@ export async function processEmailJob(job: Job): Promise<void> {
         customerName: user.name,
         resetUrl: data.resetUrl,
         expiresInLabel: "1 hour",
+      })
+      await updateEmailLog(data.emailLogId, { status: "sent", errorMessage: null })
+    } catch (e) {
+      await handleJobFailure(data.emailLogId, job, e)
+      throw e
+    }
+    return
+  }
+
+  if (data.type === "ADMIN_ONBOARDING") {
+    const user = await getUserById(data.userId)
+    if (!user) {
+      await updateEmailLog(data.emailLogId, {
+        status: "failed",
+        errorMessage: "User not found",
+      })
+      return
+    }
+    try {
+      await emailService.sendAdminOnboarding({
+        to: user.email,
+        adminName: user.name,
+        role:
+          user.role === "super_admin" || user.role === "admin"
+            ? user.role
+            : "admin",
+        temporaryPassword: data.temporaryPassword,
+        loginUrl: data.loginUrl,
       })
       await updateEmailLog(data.emailLogId, { status: "sent", errorMessage: null })
     } catch (e) {
