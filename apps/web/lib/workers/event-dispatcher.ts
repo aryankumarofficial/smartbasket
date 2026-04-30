@@ -46,7 +46,7 @@ export async function dispatchDerivedJobs(
       const signal =
         event.eventType === "purchase"
           ? ({ eventType: "purchase" as const, delta: 5 } as const)
-          : ["cart_add", "wishlist_add", "search_click", "product_click"].includes(
+          : ["cart_add", "wishlist_add", "search_click", "product_click", "checkout_started"].includes(
                 event.eventType
               )
             ? ({ eventType: "click" as const, delta: 2 } as const)
@@ -64,7 +64,7 @@ export async function dispatchDerivedJobs(
 
     if (
       event.userId &&
-      ["cart_add", "cart_remove", "purchase", "wishlist_add"].includes(
+      ["cart_add", "cart_remove", "purchase", "wishlist_add", "order_placed"].includes(
         event.eventType
       )
     ) {

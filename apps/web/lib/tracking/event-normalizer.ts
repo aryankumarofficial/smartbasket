@@ -16,6 +16,8 @@ const EVENT_TYPES = new Set([
   "wishlist_remove",
   "search",
   "search_click",
+  "checkout_started",
+  "order_placed",
   "purchase",
   "page_view",
   "session_start",
