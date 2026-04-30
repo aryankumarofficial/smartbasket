@@ -1,8 +1,8 @@
-import bcrypt from "bcryptjs"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
 import { createUser, getUserByEmail } from "@workspace/db/queries/user"
+import { hashPassword } from "@/src/lib/auth/password"
 
 const bodySchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email already registered" }, { status: 409 })
     }
 
-    const passwordHash = await bcrypt.hash(password, 12)
+    const passwordHash = await hashPassword(password)
     await createUser({
       email: email.toLowerCase(),
       name,

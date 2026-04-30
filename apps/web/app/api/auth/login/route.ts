@@ -1,8 +1,8 @@
-import bcrypt from "bcryptjs"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
 import { getUserByEmail } from "@workspace/db/queries/user"
+import { verifyPassword } from "@/src/lib/auth/password"
 import { REFRESH_TOKEN_COOKIE_NAME, refreshCookieAttributes } from "@/src/lib/auth/cookies"
 import { signAccessToken, signRefreshToken } from "@/src/lib/auth/tokens"
 import type { AuthUser } from "@/src/types/auth"
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
     }
 
-    const ok = await bcrypt.compare(parsed.data.password, user.passwordHash)
+    const ok = await verifyPassword(parsed.data.password, user.passwordHash)
     if (!ok) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
     }
