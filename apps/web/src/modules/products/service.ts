@@ -12,6 +12,16 @@ export const productsService = {
     return productsRepository.list(filters)
   },
 
+  async listAdmin(filters: {
+    q?: string
+    category?: string
+    page?: number
+    limit?: number
+    sort?: "name" | "price_desc" | "created_desc"
+  }) {
+    return productsRepository.listAdmin(filters)
+  },
+
   async getById(id: string) {
     return productsRepository.getById(id)
   },
@@ -29,7 +39,7 @@ export const productsService = {
   async update(id: string, input: Partial<ProductUpsertInput>) {
     const updated = await productsRepository.update(id, {
       ...input,
-      name: input.title,
+      ...(input.title !== undefined ? { name: input.title } : {}),
     })
     if (updated) {
       await enqueueTagGeneration(id)

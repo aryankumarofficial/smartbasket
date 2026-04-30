@@ -3,10 +3,27 @@ export interface AdminDashboardStats {
   totalOrders: number
   revenue: number
   currency: string
+  conversionRate: number
+  activeUsers7d: number
+  seriesFrom: string
+  seriesTo: string
+  ordersSeries: { day: string; orderCount: number; revenue: number }[]
   topProducts: {
     productId: string | null
     name: string
     unitsSold: number
+  }[]
+}
+
+export interface AdminOrderDetailResponse {
+  order: AdminOrderRow
+  items: {
+    id: string
+    productId: string | null
+    productName: string
+    productImage: string | null
+    quantity: number
+    priceAtPurchase: string
   }[]
 }
 

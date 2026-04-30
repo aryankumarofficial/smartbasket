@@ -9,6 +9,8 @@ export interface ProductListItem {
   category: string
   imageUrl?: string | null
   images?: string[] | null
+  inventoryCount?: number | null
+  inStock?: boolean | null
   manualTags?: {
     tag: string
     category: "use_case" | "audience" | "price_segment" | "type"
@@ -23,7 +25,16 @@ export interface ProductListResponse {
 }
 
 export interface ProductDetailResponse {
-  product: ProductListItem
+  product: ProductListItem & {
+    originalPrice?: string | null
+    subcategory?: string | null
+    brand?: string | null
+    inventoryCount?: number | null
+    inStock?: boolean | null
+    metadata?: Record<string, unknown> | null
+    aiTags?: ProductListItem["manualTags"]
+    finalTags?: ProductListItem["manualTags"]
+  }
 }
 
 export interface ProductListFilters {

@@ -4,6 +4,7 @@ import type { ProductUpsertInput } from "./types"
 
 export const productsController = {
   async list(request: NextRequest) {
+    const pathname = request.nextUrl.pathname
     const searchParams = request.nextUrl.searchParams
     const category = searchParams.get("category") ?? undefined
     const minPrice = searchParams.get("minPrice")
@@ -12,6 +13,30 @@ export const productsController = {
     const maxPrice = searchParams.get("maxPrice")
       ? Number(searchParams.get("maxPrice"))
       : undefined
+
+    if (pathname.includes("/api/admin/")) {
+      const q = searchParams.get("q") ?? undefined
+      const page = searchParams.get("page")
+        ? Number(searchParams.get("page"))
+        : undefined
+      const limit = searchParams.get("limit")
+        ? Number(searchParams.get("limit"))
+        : undefined
+      const sort = (searchParams.get("sort") ?? undefined) as
+        | "name"
+        | "price_desc"
+        | "created_desc"
+        | undefined
+      const { products, total } = await productsService.listAdmin({
+        q,
+        category,
+        page,
+        limit,
+        sort,
+      })
+      return NextResponse.json({ products, total })
+    }
+
     const products = await productsService.list({ category, minPrice, maxPrice })
     return NextResponse.json({ products, total: products.length })
   },
