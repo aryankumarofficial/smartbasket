@@ -2,9 +2,7 @@ import type {
   RecommendedProduct,
   RecommendationStrategy,
 } from "../types/recommendations"
-
-const AI_SERVICE_URL =
-  process.env.AI_SERVICE_URL ?? "http://localhost:8000"
+import { AI_SERVICE_URL } from "./ai-url"
 
 export interface AiRecommendationResponse {
   recommendations: RecommendedProduct[]

@@ -1,6 +1,5 @@
 import type { LlmTaggingResponse, TaggingPayload } from "@/src/modules/tagging/types"
-
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL ?? "http://localhost:8000"
+import { AI_SERVICE_URL } from "@/lib/services/ai-url"
 
 export const llmService = {
   async generateProductTags(payload: TaggingPayload): Promise<LlmTaggingResponse> {

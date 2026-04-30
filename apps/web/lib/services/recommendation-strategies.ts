@@ -11,9 +11,7 @@ import {
 } from "@workspace/db/queries/index"
 import { getProducts } from "@workspace/db/queries/product"
 import type { RecommendationStrategy } from "../types/recommendations"
-
-const AI_SERVICE_URL =
-  process.env.AI_SERVICE_URL ?? "http://localhost:8000"
+import { AI_SERVICE_URL } from "./ai-url"
 
 export interface StrategyResult {
   recommendations: RecommendedProduct[]

@@ -1,6 +1,5 @@
-const AI_SERVICE_URL =
-  process.env.AI_SERVICE_URL ?? "http://localhost:8000"
 import { getProductById } from "@workspace/db/queries/product"
+import { AI_SERVICE_URL } from "../services/ai-url"
 
 export async function generateSingleProductEmbedding(
   productId: string
