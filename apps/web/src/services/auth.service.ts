@@ -1,11 +1,19 @@
 import { apiFetch, refreshAccessToken, resolveApiUrl } from "@/src/lib/api"
 import { useAuthStore } from "@/src/stores/auth.store"
-import type { LoginRequest, LoginResponse } from "@/src/types/auth"
+import type { LoginRequest, LoginResponse, RegisterRequest } from "@/src/types/auth"
 
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   return apiFetch<LoginResponse>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
+    skipAuth: true,
+  })
+}
+
+export async function register(data: RegisterRequest): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify(data),
     skipAuth: true,
   })
 }

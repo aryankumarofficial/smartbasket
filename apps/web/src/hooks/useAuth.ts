@@ -4,7 +4,7 @@ import { useCallback, useMemo } from "react"
 
 import { useAuthStore } from "@/src/stores/auth.store"
 import * as authService from "@/src/services/auth.service"
-import type { AuthUser, LoginRequest } from "@/src/types/auth"
+import type { AuthUser, LoginRequest, RegisterRequest } from "@/src/types/auth"
 
 export function useAuth() {
   const accessToken = useAuthStore((s) => s.accessToken)
@@ -25,6 +25,10 @@ export function useAuth() {
     },
     [setAuth],
   )
+
+  const register = useCallback(async (data: RegisterRequest) => {
+    await authService.register(data)
+  }, [])
 
   const logout = useCallback(async () => {
     try {
@@ -52,6 +56,7 @@ export function useAuth() {
       user,
       isAuthenticated,
       login,
+      register,
       logout,
       bootstrapAuth,
       applySession,
@@ -62,6 +67,7 @@ export function useAuth() {
       user,
       isAuthenticated,
       login,
+      register,
       logout,
       bootstrapAuth,
       applySession,
