@@ -3,17 +3,23 @@ import { useAuthStore } from "@/src/stores/auth.store"
 import type { ProductUpsertInput } from "@/src/modules/products/types"
 import type { ProductDetailResponse, ProductListResponse } from "@/src/types/product"
 
-export async function listAdminProducts(params?: { category?: string; minPrice?: number; maxPrice?: number }) {
+export async function listAdminProducts(params?: {
+  q?: string
+  category?: string
+  minPrice?: number
+  maxPrice?: number
+  page?: number
+  limit?: number
+  sort?: "name" | "price_desc" | "created_desc"
+}) {
   const sp = new URLSearchParams()
-  if (params?.category) {
-    sp.set("category", params.category)
-  }
-  if (params?.minPrice !== undefined) {
-    sp.set("minPrice", String(params.minPrice))
-  }
-  if (params?.maxPrice !== undefined) {
-    sp.set("maxPrice", String(params.maxPrice))
-  }
+  if (params?.category) sp.set("category", params.category)
+  if (params?.minPrice !== undefined) sp.set("minPrice", String(params.minPrice))
+  if (params?.maxPrice !== undefined) sp.set("maxPrice", String(params.maxPrice))
+  if (params?.q?.trim()) sp.set("q", params.q.trim())
+  if (params?.page !== undefined) sp.set("page", String(params.page))
+  if (params?.limit !== undefined) sp.set("limit", String(params.limit))
+  if (params?.sort) sp.set("sort", params.sort)
   const q = sp.toString()
   return apiFetch<ProductListResponse>(`/api/admin/products${q ? `?${q}` : ""}`)
 }

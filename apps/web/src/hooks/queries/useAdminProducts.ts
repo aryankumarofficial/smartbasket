@@ -7,10 +7,27 @@ import { adminKeys } from "@/src/hooks/queries/adminKeys"
 import type { ProductUpsertInput } from "@/src/modules/products/types"
 import * as adminProductService from "@/src/services/admin-product.service"
 
-export function useAdminProductsQuery() {
+export type AdminProductListFilters = {
+  q?: string
+  category?: string
+  page?: number
+  limit?: number
+  sort?: "name" | "price_desc" | "created_desc"
+}
+
+export function useAdminProductsQuery(filters?: AdminProductListFilters) {
   return useQuery({
-    queryKey: adminKeys.products,
-    queryFn: () => adminProductService.listAdminProducts(),
+    queryKey: adminKeys.productList(filters),
+    queryFn: () => adminProductService.listAdminProducts(filters),
+    staleTime: staleTimeFast,
+  })
+}
+
+export function useAdminProductQuery(id: string | null) {
+  return useQuery({
+    queryKey: adminKeys.product(id ?? ""),
+    queryFn: () => adminProductService.getAdminProduct(id as string),
+    enabled: Boolean(id),
     staleTime: staleTimeFast,
   })
 }
